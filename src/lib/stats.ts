@@ -16,7 +16,7 @@ export interface DaySummary {
   business: number;
 }
 
-const toOz = (amount = 0, unit = '') => {
+export const toOz = (amount = 0, unit = '') => {
   const u = unit.toLowerCase();
   if (u.startsWith('cup')) return amount * 8;
   if (u === 'l' || u.startsWith('liter') || u.startsWith('litre')) return amount * 33.8;

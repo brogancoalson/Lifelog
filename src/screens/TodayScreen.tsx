@@ -8,34 +8,61 @@ import { addDays, prettyDay, toDay } from '../lib/dates';
 import { fmtHours, fmtMinutes, fmtMoney, summarize } from '../lib/stats';
 import { useStore } from '../lib/store';
 import { font, radius, space, useInsets, useTheme } from '../theme';
+import type { TrackerKey } from '../lib/trackers';
 import type { Entry } from '../types';
 
-function Stat({ icon, color, label, value, sub }: { icon: string; color: string; label: string; value: string; sub?: string }) {
+function Stat({
+  icon,
+  color,
+  label,
+  value,
+  sub,
+  onPress,
+}: {
+  icon: string;
+  color: string;
+  label: string;
+  value: string;
+  sub?: string;
+  onPress: () => void;
+}) {
   const t = useTheme();
   return (
-    <View
-      style={{
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`${label}: ${value}. Open details.`}
+      style={({ pressed }) => ({
         flexBasis: '47%',
         flexGrow: 1,
-        backgroundColor: t.surface,
+        backgroundColor: pressed ? t.surface2 : t.surface,
         borderRadius: radius.lg,
         borderWidth: 1,
-        borderColor: t.border,
+        borderColor: pressed ? t.borderStrong : t.border,
         padding: space.md,
         gap: 6,
-      }}
+      })}
     >
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
         <Icon name={icon} size={15} color={color} />
-        <Text style={{ color: t.textDim, fontSize: 13, fontFamily: font.label, letterSpacing: 1.2, textTransform: 'uppercase' }}>{label}</Text>
+        <Text style={{ flex: 1, color: t.textDim, fontSize: 13, fontFamily: font.label, letterSpacing: 1.2, textTransform: 'uppercase' }}>{label}</Text>
+        <Icon name="chevron-forward" size={14} color={t.textFaint} />
       </View>
       <Text style={{ color: t.text, fontSize: 38, lineHeight: 40, fontFamily: font.display, letterSpacing: 0.5 }}>{value}</Text>
       {sub ? <Text style={{ color: t.textFaint, fontSize: 12 }}>{sub}</Text> : null}
-    </View>
+    </Pressable>
   );
 }
 
-export function TodayScreen({ onOpenSettings, onGoLog }: { onOpenSettings: () => void; onGoLog: () => void }) {
+export function TodayScreen({
+  onOpenSettings,
+  onGoLog,
+  onOpenTracker,
+}: {
+  onOpenSettings: () => void;
+  onGoLog: () => void;
+  onOpenTracker: (key: TrackerKey) => void;
+}) {
   const t = useTheme();
   const insets = useInsets();
   const { data, saveFailed } = useStore();
@@ -75,9 +102,10 @@ export function TodayScreen({ onOpenSettings, onGoLog }: { onOpenSettings: () =>
         ) : null}
 
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm }}>
-          <Stat icon="water" color={CATEGORIES.drink.color} label="Water" value={`${s.waterOz} oz`} sub={s.drinks ? `${s.drinks} drink${s.drinks > 1 ? 's' : ''} logged` : undefined} />
-          <Stat icon="restaurant" color={CATEGORIES.food.color} label="Meals" value={String(s.meals)} sub={s.protein ? `${s.protein}g protein` : s.calories ? `${s.calories} cal` : undefined} />
+          <Stat onPress={() => onOpenTracker('water')} icon="water" color={CATEGORIES.drink.color} label="Water" value={`${s.waterOz} oz`} sub={s.drinks ? `${s.drinks} drink${s.drinks > 1 ? 's' : ''} logged` : undefined} />
+          <Stat onPress={() => onOpenTracker('food')} icon="restaurant" color={CATEGORIES.food.color} label="Meals" value={String(s.meals)} sub={s.protein ? `${s.protein}g protein` : s.calories ? `${s.calories} cal` : undefined} />
           <Stat
+            onPress={() => onOpenTracker('workout')}
             icon="barbell"
             color={CATEGORIES.workout.color}
             label="Workouts"
@@ -85,14 +113,15 @@ export function TodayScreen({ onOpenSettings, onGoLog }: { onOpenSettings: () =>
             sub={s.activeMinutes ? `${fmtMinutes(s.activeMinutes)} training` : undefined}
           />
           <Stat
+            onPress={() => onOpenTracker('money')}
             icon="cash"
             color={CATEGORIES.money.color}
             label="Money"
             value={`${net < 0 ? '−' : ''}${fmtMoney(net)}`}
             sub={s.moneyIn || s.moneyOut ? `+${fmtMoney(s.moneyIn)} / −${fmtMoney(s.moneyOut)}` : undefined}
           />
-          <Stat icon="happy" color={CATEGORIES.mood.color} label="Mood" value={s.mood ? MOOD_LABELS[Math.round(s.mood)] : '—'} />
-          <Stat icon="medal" color={t.accent} label="Award hrs" value={fmtHours(s.awardMinutes / 60)} sub={s.business ? `${s.business} business item${s.business > 1 ? 's' : ''}` : undefined} />
+          <Stat onPress={() => onOpenTracker('mood')} icon="happy" color={CATEGORIES.mood.color} label="Mood" value={s.mood ? MOOD_LABELS[Math.round(s.mood)] : '—'} />
+          <Stat onPress={() => onOpenTracker('award')} icon="medal" color={t.accent} label="Award hrs" value={fmtHours(s.awardMinutes / 60)} sub={s.business ? `${s.business} business item${s.business > 1 ? 's' : ''}` : undefined} />
         </View>
 
         <View style={{ gap: 4 }}>

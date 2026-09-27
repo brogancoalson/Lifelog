@@ -3,32 +3,16 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 import { EntryEditor } from '../components/EntryEditor';
 import { GoalEditor } from '../components/GoalEditor';
 import { Body, Button, Card, Empty, Icon, IconButton, Label, ProgressBar, Title } from '../components/ui';
-import { AWARD_AREAS, AWARD_ORDER, CATEGORIES } from '../lib/categories';
+import { awardExport } from '../lib/award';
+import { AWARD_AREAS, CATEGORIES } from '../lib/categories';
 import { monthsBetween, toDay } from '../lib/dates';
 import { shareText } from '../lib/share';
-import { awardTotals, fmtHours, fmtMinutes, goalProgress } from '../lib/stats';
+import { awardTotals, fmtHours, goalProgress } from '../lib/stats';
 import { useStore } from '../lib/store';
 import { font, space, useInsets, useTheme } from '../theme';
-import type { AppData, AwardArea, Goal } from '../types';
+import type { AwardArea, Goal } from '../types';
 
 const PERIOD_LABEL = { day: 'today', week: 'this week', month: 'this month', all: 'overall' } as const;
-
-function awardExport(data: AppData): string {
-  const a = data.settings.award;
-  const totals = awardTotals(data.entries);
-  const lines = [`Congressional Award log (${a.level})`, ''];
-  for (const area of AWARD_ORDER) {
-    const target = a.targets[area];
-    lines.push(`${AWARD_AREAS[area].label}: ${fmtHours(totals[area])}${target ? ` / ${target}` : ''} hrs`);
-    const items = data.entries.filter((e) => e.awardArea === area).sort((x, y) => x.date.localeCompare(y.date));
-    for (const e of items) {
-      lines.push(`  ${e.date}  ${fmtMinutes(e.minutes ?? 0)}  ${e.text}${e.validator ? `  (validator: ${e.validator})` : ''}`);
-    }
-    lines.push('');
-  }
-  lines.push(`Expedition trip: ${a.expeditionDone ? 'completed' : 'not yet'}`);
-  return lines.join('\n');
-}
 
 function AwardCard({ onLogHours }: { onLogHours: (area: AwardArea) => void }) {
   const t = useTheme();

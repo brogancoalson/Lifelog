@@ -61,7 +61,7 @@ export function normalizeEntry(raw: any, fallback: Partial<Entry> = {}): Entry |
     lifts: lifts && lifts.length ? lifts : undefined,
     awardArea: isAwardArea(raw.awardArea) ? raw.awardArea : undefined,
     validator: str(raw.validator, 80),
-    source: raw.source === 'manual' || raw.source === 'health' ? raw.source : fallback.source ?? 'chat',
+    source: raw.source === 'chat' || raw.source === 'manual' || raw.source === 'health' ? raw.source : fallback.source ?? 'chat',
   };
 }
 
