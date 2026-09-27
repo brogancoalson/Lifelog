@@ -1,11 +1,10 @@
 name: Publish to phone
 
-# Every push to main publishes the app as an EAS Update.
-# Expo Go on the iPhone picks it up from the link in the run summary.
+# Backup publisher. Expo's own workflow (.eas/workflows/publish.yml) handles
+# normal publishing. Run this by hand only if that one isn't available;
+# it needs an EXPO_TOKEN repo secret.
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:

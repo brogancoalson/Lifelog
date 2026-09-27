@@ -1,0 +1,15 @@
+# Runs on Expo's servers through the GitHub connection.
+# Every push to main publishes the app for Expo Go on the iPhone.
+name: Publish to phone
+
+on:
+  push:
+    branches: ['main']
+
+jobs:
+  publish_update:
+    name: Publish update
+    type: update
+    params:
+      channel: main
+      platform: ios
