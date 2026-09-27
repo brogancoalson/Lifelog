@@ -1,5 +1,7 @@
 # Runs on Expo's servers through the GitHub connection.
-# Every push to main publishes the app for Expo Go on the iPhone.
+# Every push to main:
+#   1. publishes the app for Expo Go on the iPhone
+#   2. deploys the web version (for Add to Home Screen) with EAS Hosting
 name: Publish to phone
 
 on:
@@ -13,3 +15,10 @@ jobs:
     params:
       channel: main
       platform: ios
+
+  deploy_web:
+    name: Deploy web version
+    type: deploy
+    environment: production
+    params:
+      prod: true
