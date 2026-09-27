@@ -4,7 +4,7 @@ import { AWARD_AREAS, AWARD_ORDER, CATEGORIES, CATEGORY_ORDER, MOOD_LABELS } fro
 import { addDays, prettyDay, toDay, toTime, uid } from '../lib/dates';
 import { normalizeEntry } from '../lib/storage';
 import { useStore } from '../lib/store';
-import { radius, space, useInsets, useTheme } from '../theme';
+import { font, radius, space, useInsets, useTheme } from '../theme';
 import type { AwardArea, Category, Entry } from '../types';
 import { Body, Button, Chip, Field, IconButton, Label } from './ui';
 
@@ -172,7 +172,7 @@ export function EntryEditor({
             }}
           >
             <IconButton icon="close" label="Close" onPress={onClose} />
-            <Text style={{ color: t.text, fontSize: 17, fontWeight: '700' }}>{entry ? 'Edit entry' : 'Log something'}</Text>
+            <Text style={{ color: t.text, fontSize: 26, fontFamily: font.display, letterSpacing: 1.2 }}>{entry ? 'Edit entry' : 'Log something'}</Text>
             <View style={{ width: 40 }} />
           </View>
           <ScrollView contentContainerStyle={{ padding: space.lg, gap: space.lg, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
@@ -272,7 +272,7 @@ export function EntryEditor({
             {cat === 'money' ? (
               <View style={{ gap: 10 }}>
                 <View style={{ flexDirection: 'row', gap: 8 }}>
-                  <Chip label="Made" color="#45C27A" selected={f.moneyDir === 'in'} onPress={() => set('moneyDir', 'in')} />
+                  <Chip label="Made" color={t.good} selected={f.moneyDir === 'in'} onPress={() => set('moneyDir', 'in')} />
                   <Chip label="Spent" color={t.danger} selected={f.moneyDir === 'out'} onPress={() => set('moneyDir', 'out')} />
                 </View>
                 <View style={{ flexDirection: 'row', gap: 12 }}>

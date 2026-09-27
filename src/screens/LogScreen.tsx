@@ -7,7 +7,7 @@ import { detectSortMode, sortMessage, SortMode } from '../lib/aiParse';
 import { AWARD_AREAS, CATEGORIES } from '../lib/categories';
 import { prettyDay } from '../lib/dates';
 import { useStore } from '../lib/store';
-import { radius, space, useInsets, useTheme } from '../theme';
+import { font, radius, space, useInsets, useTheme } from '../theme';
 import type { ChatMessage, Entry } from '../types';
 
 const EXAMPLES = [
@@ -139,8 +139,8 @@ export function LogScreen() {
             backgroundColor: t.surface2,
           }}
         >
-          <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: mode === 'quick' ? t.textFaint : '#45C27A' }} />
-          <Text style={{ color: t.textDim, fontSize: 12, fontWeight: '600' }}>{MODE_LABEL[mode]}</Text>
+          <View style={{ width: 7, height: 7, borderRadius: 0, backgroundColor: mode === 'quick' ? t.textFaint : t.good }} />
+          <Text style={{ color: t.textDim, fontSize: 13, fontFamily: font.label, letterSpacing: 1, textTransform: 'uppercase' }}>{MODE_LABEL[mode]}</Text>
         </View>
       </View>
 
@@ -186,9 +186,11 @@ export function LogScreen() {
                 style={{
                   maxWidth: '88%',
                   backgroundColor: mine ? t.bubbleMe : t.bubbleApp,
+                  borderWidth: mine ? 0 : 1,
+                  borderColor: t.border,
                   borderRadius: radius.lg,
-                  borderBottomRightRadius: mine ? 4 : radius.lg,
-                  borderBottomLeftRadius: mine ? radius.lg : 4,
+                  borderBottomRightRadius: 0,
+                  borderBottomLeftRadius: 0,
                   paddingHorizontal: 14,
                   paddingVertical: 10,
                 }}
@@ -199,7 +201,7 @@ export function LogScreen() {
                 {!mine && !m.undone && entries.length ? <MessageEntries entries={entries} onEdit={setEditing} /> : null}
                 {!mine && !m.undone && entries.length ? (
                   <Pressable onPress={() => undo(m)} style={{ alignSelf: 'flex-start', paddingTop: 8 }} accessibilityRole="button">
-                    <Text style={{ color: t.textDim, fontSize: 13, fontWeight: '600' }}>Undo</Text>
+                    <Text style={{ color: t.textDim, fontSize: 14, fontFamily: font.labelBold, letterSpacing: 1, textTransform: 'uppercase' }}>Undo</Text>
                   </Pressable>
                 ) : null}
               </View>
@@ -248,7 +250,7 @@ export function LogScreen() {
             maxHeight: 120,
             backgroundColor: t.surface2,
             color: t.text,
-            borderRadius: 21,
+            borderRadius: 0,
             paddingHorizontal: 14,
             paddingTop: 11,
             paddingBottom: 11,
@@ -263,7 +265,7 @@ export function LogScreen() {
           style={({ pressed }) => ({
             width: 42,
             height: 42,
-            borderRadius: 21,
+            borderRadius: 0,
             backgroundColor: t.accent,
             alignItems: 'center',
             justifyContent: 'center',

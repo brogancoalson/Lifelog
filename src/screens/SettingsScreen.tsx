@@ -5,7 +5,7 @@ import { Body, Button, Card, Field, IconButton, Label } from '../components/ui';
 import { AWARD_AREAS } from '../lib/categories';
 import { isValidDay } from '../lib/dates';
 import { useStore } from '../lib/store';
-import { radius, space, useTheme } from '../theme';
+import { font, radius, space, useTheme } from '../theme';
 
 export function SettingsScreen({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const t = useTheme();
@@ -95,7 +95,7 @@ export function SettingsScreen({ visible, onClose }: { visible: boolean; onClose
             }}
           >
             <IconButton icon="close" label="Close" onPress={onClose} />
-            <Text style={{ color: t.text, fontSize: 17, fontWeight: '700' }}>Settings</Text>
+            <Text style={{ color: t.text, fontSize: 26, fontFamily: font.display, letterSpacing: 1.2 }}>Settings</Text>
             <View style={{ width: 40 }} />
           </View>
           <ScrollView contentContainerStyle={{ padding: space.lg, gap: space.lg, paddingBottom: 60 }} keyboardShouldPersistTaps="handled">

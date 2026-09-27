@@ -2,41 +2,53 @@ import { useSyncExternalStore } from 'react';
 import { Platform, useColorScheme } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+// Hard look: near-black iron, bone text, dried-blood accent, square edges.
 const dark = {
-  bg: '#0E0F11',
-  surface: '#17191C',
-  surface2: '#202328',
-  border: '#2A2E34',
-  text: '#F2F3F5',
-  textDim: '#9BA1A9',
-  textFaint: '#6B7078',
-  accent: '#D4A537',
-  accentText: '#0E0F11',
-  danger: '#EF5B5B',
-  bubbleMe: '#D4A537',
-  bubbleMeText: '#0E0F11',
-  bubbleApp: '#202328',
-  overlay: 'rgba(0,0,0,0.6)',
+  bg: '#0B0B0A',
+  surface: '#141412',
+  surface2: '#1E1D1A',
+  border: '#36332E',
+  borderStrong: '#4A463F',
+  text: '#E6E1D6',
+  textDim: '#9C968B',
+  textFaint: '#67635B',
+  accent: '#A8352B',
+  accentText: '#F0EBE0',
+  good: '#5E8C52',
+  danger: '#C24A34',
+  bubbleMe: '#A8352B',
+  bubbleMeText: '#F0EBE0',
+  bubbleApp: '#1E1D1A',
+  overlay: 'rgba(0,0,0,0.7)',
 };
 
 const light: typeof dark = {
-  bg: '#F6F6F4',
-  surface: '#FFFFFF',
-  surface2: '#EFEFEC',
-  border: '#E2E2DE',
-  text: '#15171A',
-  textDim: '#5F646C',
-  textFaint: '#8A8F97',
-  accent: '#B8891A',
-  accentText: '#FFFFFF',
-  danger: '#D93C3C',
-  bubbleMe: '#B8891A',
-  bubbleMeText: '#FFFFFF',
-  bubbleApp: '#EFEFEC',
-  overlay: 'rgba(0,0,0,0.35)',
+  bg: '#E7E3DA',
+  surface: '#F1EEE7',
+  surface2: '#DDD8CD',
+  border: '#C4BEB2',
+  borderStrong: '#A59F92',
+  text: '#151412',
+  textDim: '#57534C',
+  textFaint: '#857F75',
+  accent: '#8E2A22',
+  accentText: '#F4F0E8',
+  good: '#4A7641',
+  danger: '#A63A27',
+  bubbleMe: '#8E2A22',
+  bubbleMeText: '#F4F0E8',
+  bubbleApp: '#DDD8CD',
+  overlay: 'rgba(0,0,0,0.45)',
 };
 
 export type Theme = typeof dark;
+
+// Typefaces: Bebas Neue for titles and big numbers, Barlow Condensed for labels and buttons.
+export const font = {
+  display: 'BebasNeue_400Regular',
+  label: 'BarlowCondensed_600SemiBold',
+  labelBold: 'BarlowCondensed_700Bold',
+};
 
 // On the web, a host page can force light/dark with <html data-theme="...">.
 // One shared observer keeps every component in step with it.
@@ -73,4 +85,5 @@ export function useInsets() {
 }
 
 export const space = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24 };
-export const radius = { sm: 8, md: 12, lg: 16, pill: 999 };
+// Square edges everywhere.
+export const radius = { sm: 0, md: 0, lg: 0, pill: 0 };

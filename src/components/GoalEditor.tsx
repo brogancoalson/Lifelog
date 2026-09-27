@@ -3,7 +3,7 @@ import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, Vie
 import { CATEGORIES, CATEGORY_ORDER } from '../lib/categories';
 import { uid } from '../lib/dates';
 import { useStore } from '../lib/store';
-import { radius, space, useTheme } from '../theme';
+import { font, radius, space, useTheme } from '../theme';
 import type { Category, Goal, GoalField, GoalPeriod } from '../types';
 import { Body, Button, Chip, Field, IconButton, Label } from './ui';
 
@@ -144,7 +144,7 @@ export function GoalEditor({ visible, goal, onClose }: { visible: boolean; goal?
             }}
           >
             <IconButton icon="close" label="Close" onPress={onClose} />
-            <Text style={{ color: t.text, fontSize: 17, fontWeight: '700' }}>{goal ? 'Edit goal' : 'New goal'}</Text>
+            <Text style={{ color: t.text, fontSize: 26, fontFamily: font.display, letterSpacing: 1.2 }}>{goal ? 'Edit goal' : 'New goal'}</Text>
             <View style={{ width: 40 }} />
           </View>
           <ScrollView contentContainerStyle={{ padding: space.lg, gap: space.lg, paddingBottom: 48 }} keyboardShouldPersistTaps="handled">

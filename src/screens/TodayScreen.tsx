@@ -7,7 +7,7 @@ import { CATEGORIES, MOOD_LABELS } from '../lib/categories';
 import { addDays, prettyDay, toDay } from '../lib/dates';
 import { fmtHours, fmtMinutes, fmtMoney, summarize } from '../lib/stats';
 import { useStore } from '../lib/store';
-import { radius, space, useInsets, useTheme } from '../theme';
+import { font, radius, space, useInsets, useTheme } from '../theme';
 import type { Entry } from '../types';
 
 function Stat({ icon, color, label, value, sub }: { icon: string; color: string; label: string; value: string; sub?: string }) {
@@ -27,9 +27,9 @@ function Stat({ icon, color, label, value, sub }: { icon: string; color: string;
     >
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
         <Icon name={icon} size={15} color={color} />
-        <Text style={{ color: t.textDim, fontSize: 12, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase' }}>{label}</Text>
+        <Text style={{ color: t.textDim, fontSize: 13, fontFamily: font.label, letterSpacing: 1.2, textTransform: 'uppercase' }}>{label}</Text>
       </View>
-      <Text style={{ color: t.text, fontSize: 24, fontWeight: '800', fontVariant: ['tabular-nums'] }}>{value}</Text>
+      <Text style={{ color: t.text, fontSize: 38, lineHeight: 40, fontFamily: font.display, letterSpacing: 0.5 }}>{value}</Text>
       {sub ? <Text style={{ color: t.textFaint, fontSize: 12 }}>{sub}</Text> : null}
     </View>
   );
@@ -61,7 +61,7 @@ export function TodayScreen({ onOpenSettings, onGoLog }: { onOpenSettings: () =>
           <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: -10 }}>
             <IconButton icon="chevron-back" label="Previous day" onPress={() => setDay(addDays(day, -1))} />
             <Pressable onPress={() => setDay(today)} accessibilityRole="button" accessibilityLabel="Jump to today">
-              <Text style={{ color: t.text, fontSize: 28, fontWeight: '800', letterSpacing: -0.5 }}>{prettyDay(day, today)}</Text>
+              <Text style={{ color: t.text, fontSize: 40, lineHeight: 42, fontFamily: font.display, letterSpacing: 1, textTransform: 'uppercase' }}>{prettyDay(day, today)}</Text>
             </Pressable>
             <IconButton icon="chevron-forward" label="Next day" onPress={() => setDay(addDays(day, 1))} />
           </View>
@@ -114,7 +114,7 @@ export function TodayScreen({ onOpenSettings, onGoLog }: { onOpenSettings: () =>
               />
               {day === today ? (
                 <Pressable onPress={onGoLog} style={{ alignSelf: 'center', padding: 8 }}>
-                  <Text style={{ color: t.accent, fontWeight: '700' }}>Open Log</Text>
+                  <Text style={{ color: t.accent, fontFamily: font.labelBold, fontSize: 16, letterSpacing: 1, textTransform: 'uppercase' }}>Open Log</Text>
                 </Pressable>
               ) : null}
             </Card>
@@ -132,7 +132,7 @@ export function TodayScreen({ onOpenSettings, onGoLog }: { onOpenSettings: () =>
           bottom: space.lg,
           width: 56,
           height: 56,
-          borderRadius: 28,
+          borderRadius: 0,
           backgroundColor: t.accent,
           alignItems: 'center',
           justifyContent: 'center',

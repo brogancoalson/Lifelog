@@ -7,15 +7,15 @@ export interface CategoryMeta {
 }
 
 export const CATEGORIES: Record<Category, CategoryMeta> = {
-  food: { label: 'Food', icon: 'restaurant', color: '#F08A3C' },
-  drink: { label: 'Drink', icon: 'water', color: '#3D9BF0' },
-  workout: { label: 'Workout', icon: 'barbell', color: '#EF5B5B' },
-  activity: { label: 'Activity', icon: 'walk', color: '#2FB8A8' },
-  business: { label: 'Business', icon: 'briefcase', color: '#B07BF7' },
-  social: { label: 'Social', icon: 'heart', color: '#F06BA8' },
-  mood: { label: 'Mood', icon: 'happy', color: '#7C8CF8' },
-  money: { label: 'Money', icon: 'cash', color: '#45C27A' },
-  note: { label: 'Note', icon: 'document-text', color: '#9AA0A6' },
+  food: { label: 'Food', icon: 'restaurant', color: '#B0683A' },
+  drink: { label: 'Drink', icon: 'water', color: '#56799A' },
+  workout: { label: 'Workout', icon: 'barbell', color: '#A39A8A' },
+  activity: { label: 'Activity', icon: 'walk', color: '#4E8078' },
+  business: { label: 'Business', icon: 'briefcase', color: '#7B6A95' },
+  social: { label: 'Social', icon: 'heart', color: '#9E5A6B' },
+  mood: { label: 'Mood', icon: 'happy', color: '#A8893F' },
+  money: { label: 'Money', icon: 'cash', color: '#5E8C52' },
+  note: { label: 'Note', icon: 'document-text', color: '#6A665F' },
 };
 
 export const CATEGORY_ORDER: Category[] = [

@@ -12,7 +12,7 @@ import {
   View,
   ViewStyle,
 } from 'react-native';
-import { radius, space, Theme, useTheme } from '../theme';
+import { font, radius, space, Theme, useTheme } from '../theme';
 
 export type IconName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -23,7 +23,11 @@ export function Icon({ name, size = 20, color }: { name: string; size?: number; 
 
 export function Title({ children, style }: { children: React.ReactNode; style?: StyleProp<TextStyle> }) {
   const t = useTheme();
-  return <Text style={[{ color: t.text, fontSize: 28, fontWeight: '800', letterSpacing: -0.5 }, style]}>{children}</Text>;
+  return (
+    <Text style={[{ color: t.text, fontSize: 40, lineHeight: 42, fontFamily: font.display, letterSpacing: 1, textTransform: 'uppercase' }, style]}>
+      {children}
+    </Text>
+  );
 }
 
 export function Label({ children, style }: { children: React.ReactNode; style?: StyleProp<TextStyle> }) {
@@ -31,7 +35,7 @@ export function Label({ children, style }: { children: React.ReactNode; style?: 
   return (
     <Text
       style={[
-        { color: t.textDim, fontSize: 12, fontWeight: '700', letterSpacing: 0.8, textTransform: 'uppercase' },
+        { color: t.textDim, fontSize: 14, fontFamily: font.label, letterSpacing: 1.4, textTransform: 'uppercase' },
         style,
       ]}
     >
@@ -112,14 +116,14 @@ export function Button({
           justifyContent: 'center',
           gap: 6,
           opacity: disabled ? 0.4 : pressed ? 0.75 : 1,
-          borderWidth: variant === 'danger' ? 1 : 0,
-          borderColor: t.danger,
+          borderWidth: variant === 'danger' || variant === 'secondary' ? 1 : 0,
+          borderColor: variant === 'danger' ? t.danger : t.borderStrong,
         },
         style,
       ]}
     >
       {loading ? <ActivityIndicator color={fg} size="small" /> : icon ? <Icon name={icon} size={small ? 16 : 18} color={fg} /> : null}
-      <Text style={{ color: fg, fontWeight: '700', fontSize: small ? 14 : 16 }}>{title}</Text>
+      <Text style={{ color: fg, fontFamily: font.labelBold, fontSize: small ? 15 : 18, letterSpacing: 1.2, textTransform: 'uppercase' }}>{title}</Text>
     </Pressable>
   );
 }
@@ -147,7 +151,7 @@ export function IconButton({
       hitSlop={8}
       onPress={onPress}
       style={({ pressed }) => [
-        { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.6 : 1 },
+        { width: 40, height: 40, borderRadius: 0, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.6 : 1 },
         style,
       ]}
     >
@@ -190,17 +194,19 @@ export function Chip({
       })}
     >
       {icon ? <Icon name={icon} size={14} color={selected ? c : t.textDim} /> : null}
-      <Text style={{ color: selected ? t.text : t.textDim, fontSize: 13, fontWeight: '600' }}>{label}</Text>
+      <Text style={{ color: selected ? t.text : t.textDim, fontSize: 14, fontFamily: font.label, letterSpacing: 0.8, textTransform: 'uppercase' }}>
+        {label}
+      </Text>
     </Pressable>
   );
 }
 
-export function ProgressBar({ value, color, height = 8 }: { value: number; color?: string; height?: number }) {
+export function ProgressBar({ value, color, height = 10 }: { value: number; color?: string; height?: number }) {
   const t = useTheme();
   const pct = Math.max(0, Math.min(1, value));
   return (
-    <View style={{ height, borderRadius: height, backgroundColor: t.surface2, overflow: 'hidden' }}>
-      <View style={{ width: `${pct * 100}%`, height: '100%', borderRadius: height, backgroundColor: color ?? t.accent }} />
+    <View style={{ height, borderRadius: 0, backgroundColor: t.surface2, overflow: 'hidden' }}>
+      <View style={{ width: `${pct * 100}%`, height: '100%', borderRadius: 0, backgroundColor: color ?? t.accent }} />
     </View>
   );
 }
@@ -237,7 +243,7 @@ export function CategoryDot({ color, icon, size = 34 }: { color: string; icon: s
       style={{
         width: size,
         height: size,
-        borderRadius: size / 2,
+        borderRadius: 0,
         backgroundColor: color + '24',
         alignItems: 'center',
         justifyContent: 'center',
@@ -253,7 +259,7 @@ export function Empty({ icon, title, body }: { icon: string; title: string; body
   return (
     <View style={{ alignItems: 'center', paddingVertical: 32, gap: 8 }}>
       <Icon name={icon} size={28} color={t.textFaint} />
-      <Body style={{ fontWeight: '700' }}>{title}</Body>
+      <Text style={{ color: t.text, fontFamily: font.labelBold, fontSize: 18, letterSpacing: 1, textTransform: 'uppercase' }}>{title}</Text>
       {body ? <Body dim style={{ textAlign: 'center', maxWidth: 300 }}>{body}</Body> : null}
     </View>
   );

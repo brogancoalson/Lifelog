@@ -7,7 +7,7 @@ import { CATEGORIES, CATEGORY_ORDER } from '../lib/categories';
 import { prettyDay, toDay } from '../lib/dates';
 import { fmtMoney, summarize } from '../lib/stats';
 import { useStore } from '../lib/store';
-import { space, useInsets, useTheme } from '../theme';
+import { font, space, useInsets, useTheme } from '../theme';
 import type { Category, Entry } from '../types';
 
 type Filter = 'all' | 'award' | Category;
@@ -81,7 +81,7 @@ export function HistoryScreen() {
           ].filter(Boolean);
           return (
             <View style={{ paddingTop: space.lg, paddingBottom: 4, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
-              <Text style={{ color: t.text, fontWeight: '800', fontSize: 16 }}>{prettyDay(section.day, today)}</Text>
+              <Text style={{ color: t.text, fontFamily: font.labelBold, fontSize: 19, letterSpacing: 1, textTransform: 'uppercase' }}>{prettyDay(section.day, today)}</Text>
               <Text style={{ color: t.textFaint, fontSize: 12, flexShrink: 1, textAlign: 'right' }} numberOfLines={1}>
                 {bits.join(' · ')}
               </Text>

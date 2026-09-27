@@ -1,3 +1,7 @@
+import { BarlowCondensed_600SemiBold } from '@expo-google-fonts/barlow-condensed/600SemiBold';
+import { BarlowCondensed_700Bold } from '@expo-google-fonts/barlow-condensed/700Bold';
+import { BebasNeue_400Regular } from '@expo-google-fonts/bebas-neue/400Regular';
+import { useFonts } from 'expo-font';
 import { StatusBar } from 'expo-status-bar';
 import React, { useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, Text, View } from 'react-native';
@@ -9,7 +13,7 @@ import { HistoryScreen } from './screens/HistoryScreen';
 import { LogScreen } from './screens/LogScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { TodayScreen } from './screens/TodayScreen';
-import { useInsets, useTheme } from './theme';
+import { font, useInsets, useTheme } from './theme';
 
 type Tab = 'today' | 'log' | 'goals' | 'history';
 
@@ -24,10 +28,12 @@ function Shell() {
   const t = useTheme();
   const insets = useInsets();
   const { ready } = useStore();
+  const [fontsLoaded, fontError] = useFonts({ BebasNeue_400Regular, BarlowCondensed_600SemiBold, BarlowCondensed_700Bold });
   const [tab, setTab] = useState<Tab>('today');
   const [settingsOpen, setSettingsOpen] = useState(false);
 
-  if (!ready) {
+  // Wait for data and fonts (if fonts fail, carry on with the system font).
+  if (!ready || (!fontsLoaded && !fontError)) {
     return (
       <View style={{ flex: 1, backgroundColor: t.bg, alignItems: 'center', justifyContent: 'center' }}>
         <ActivityIndicator color={t.accent} />
@@ -51,7 +57,7 @@ function Shell() {
           borderTopColor: t.border,
           backgroundColor: t.surface,
           paddingBottom: Math.max(insets.bottom, Platform.OS === 'web' ? 8 : 6),
-          paddingTop: 6,
+          paddingTop: 0,
         }}
       >
         {TABS.map((item) => {
@@ -63,10 +69,12 @@ function Shell() {
               accessibilityState={{ selected: active }}
               accessibilityLabel={item.label}
               onPress={() => setTab(item.key)}
-              style={{ flex: 1, alignItems: 'center', gap: 2, paddingVertical: 4 }}
+              style={{ flex: 1, alignItems: 'center', gap: 2, paddingVertical: 6, borderTopWidth: 3, borderTopColor: active ? t.accent : 'transparent' }}
             >
-              <Icon name={active ? item.icon : `${item.icon}-outline`} size={23} color={active ? t.accent : t.textFaint} />
-              <Text style={{ fontSize: 11, fontWeight: '600', color: active ? t.accent : t.textFaint }}>{item.label}</Text>
+              <Icon name={active ? item.icon : `${item.icon}-outline`} size={23} color={active ? t.text : t.textFaint} />
+              <Text style={{ fontSize: 13, fontFamily: font.label, letterSpacing: 1.2, textTransform: 'uppercase', color: active ? t.text : t.textFaint }}>
+                {item.label}
+              </Text>
             </Pressable>
           );
         })}
