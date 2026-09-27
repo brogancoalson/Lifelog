@@ -1,0 +1,74 @@
+name: Publish to phone
+
+# Every push to main publishes the app as an EAS Update.
+# Expo Go on the iPhone picks it up from the link in the run summary.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
+env:
+  CHANNEL: main
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check setup
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "::error::Add an EXPO_TOKEN secret to this repo (Settings > Secrets and variables > Actions)."
+            exit 1
+          fi
+          if ! jq -e '.expo.extra.eas.projectId' app.json > /dev/null; then
+            echo "::error::app.json has no Expo project ID yet."
+            exit 1
+          fi
+          npx --yes eas-cli@latest whoami
+
+      - name: Publish update
+        id: published
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          npx --yes eas-cli@latest update --channel "$CHANNEL" --platform ios \
+            --message "$(git log -1 --pretty=%s)" --non-interactive --json > "$RUNNER_TEMP/update.json"
+          echo "project=$(jq -er .expo.extra.eas.projectId app.json)" >> "$GITHUB_OUTPUT"
+          echo "runtime=$(jq -er 'first(.[].runtimeVersion)' "$RUNNER_TEMP/update.json")" >> "$GITHUB_OUTPUT"
+
+      - name: Link for Expo Go
+        env:
+          PROJECT: ${{ steps.published.outputs.project }}
+          RUNTIME: ${{ steps.published.outputs.runtime }}
+        run: |
+          address="exp://u.expo.dev/$PROJECT?runtime-version=${RUNTIME/:/%3A}&channel-name=$CHANNEL"
+          {
+            echo "## Open Lifelog on your iPhone"
+            echo
+            echo "In Expo Go, tap **Enter URL manually** and paste:"
+            echo
+            echo "\`$address\`"
+            echo
+            echo "This link stays the same. Each new push updates what it opens."
+          } >> "$GITHUB_STEP_SUMMARY"
