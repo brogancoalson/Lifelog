@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Lifelog</title>
+    <!-- Home-screen app support (Add to Home Screen on iPhone) -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Lifelog" />
+    <meta name="theme-color" content="#0B0B0A" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.json" />
+    <style id="expo-reset">
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        background: #0b0b0a;
+      }
+      @media (prefers-color-scheme: light) {
+        html,
+        body {
+          background: #e7e3da;
+        }
+      }
+      body {
+        overflow: hidden;
+      }
+      /* Keep content clear of the notch and home bar when opened from the home screen */
+      #root {
+        display: flex;
+        height: 100%;
+        flex: 1;
+        box-sizing: border-box;
+        padding-top: env(safe-area-inset-top, 0px);
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+      }
+    </style>
+  </head>
+  <body>
+    <noscript>Lifelog needs JavaScript turned on.</noscript>
+    <div id="root"></div>
+  </body>
+</html>
