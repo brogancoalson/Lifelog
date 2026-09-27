@@ -25,9 +25,8 @@ Run lint and typecheck before declaring any task done.
 
 ## Navigation & Routing
 
-- Use **Expo Router** for all navigation. Routes live in `src/app/` — every file there is a screen, `_layout.tsx` files define navigators. Keep non-route code (components, hooks, utils) outside `src/app/`.
-- Import `Link`, `router`, and `useLocalSearchParams` from `expo-router`.
-- Docs: https://docs.expo.dev/router/introduction.md
+- This app does NOT use Expo Router. `src/App.tsx` switches between four tab screens with plain state, so the same web build runs as one self-contained page (the preview published in Claude has no real URL paths). Keep new screens as components under `src/screens/` and add them to the tab list or open them as modals.
+- Must stay Expo Go compatible for now (no custom native modules) until the app moves to a development build.
 
 ## Building with EAS
 
