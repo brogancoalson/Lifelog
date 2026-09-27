@@ -22,9 +22,16 @@ Data is saved on the device for now. Syncing between phone and computer comes wi
 
 ## Run it on your iPhone (free, no Mac)
 
-1. Install **Expo Go** from the App Store and make a free account at expo.dev.
-2. On your computer (needs Node.js): `npm install`, then `npx expo start`. Scan the QR code with your iPhone camera.
-3. To open it without your computer running, publish an update: `npx eas-cli@latest login`, `npx eas-cli@latest update:configure`, then `npx eas-cli@latest update --branch main --message "phase 1"`. Open the link it gives you in Expo Go.
+Every push to `main` publishes the app through Expo's GitHub connection (`.eas/workflows/publish.yml`). No computer needed.
+
+1. Install **Expo Go** and sign in as `brogancoalson`.
+2. Open this link on the iPhone (or paste it into Expo Go under "Enter URL manually"):
+
+   `exp://u.expo.dev/64009744-d687-445b-be2f-8d8c7d06505b?runtime-version=exposdk%3A57.0.0&channel-name=main`
+
+The link stays the same; each push updates what it opens. When the Expo SDK version changes, the `exposdk%3A57.0.0` part changes with it.
+
+Backup: `.github/workflows/publish.yml` does the same from GitHub Actions if run by hand (needs an `EXPO_TOKEN` repo secret).
 
 ## Turn on AI sorting (about $5 of API credit to start)
 
