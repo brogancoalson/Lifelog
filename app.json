@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Lifelog",
-    "slug": "lifelog",
+    "slug": "lifelog-",
     "owner": "brogancoalson",
     "version": "0.1.0",
     "orientation": "portrait",
@@ -34,6 +34,9 @@
       "eas": {
         "projectId": "64009744-d687-445b-be2f-8d8c7d06505b"
       }
-    }
+    },
+    "plugins": [
+      "expo-font"
+    ]
   }
 }
