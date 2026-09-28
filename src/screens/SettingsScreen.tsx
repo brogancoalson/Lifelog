@@ -25,6 +25,7 @@ export function SettingsScreen({ visible, onClose }: { visible: boolean; onClose
   const [key, setKey] = useState(data.settings.aiKey ?? '');
   const [claudeKey, setClaudeKey] = useState(data.settings.claudeKey ?? '');
   const [testing, setTesting] = useState(false);
+  const [aboutMe, setAboutMe] = useState(data.settings.aboutMe ?? '');
   const pay = data.settings.pay;
   const [hourly, setHourly] = useState(String(pay.hourly));
   const [hoursPerDay, setHoursPerDay] = useState(String(pay.hoursPerDay));
@@ -49,6 +50,7 @@ export function SettingsScreen({ visible, onClose }: { visible: boolean; onClose
     setEndpoint(data.settings.aiEndpoint ?? '');
     setKey(data.settings.aiKey ?? '');
     setClaudeKey(data.settings.claudeKey ?? '');
+    setAboutMe(data.settings.aboutMe ?? '');
     setHourly(String(data.settings.pay.hourly));
     setHoursPerDay(String(data.settings.pay.hoursPerDay));
     setDaysPerWeek(String(data.settings.pay.daysPerWeek));
@@ -151,8 +153,8 @@ export function SettingsScreen({ visible, onClose }: { visible: boolean; onClose
             <Card style={{ gap: space.md }}>
               <Label>Claude connection</Label>
               <Body dim style={{ fontSize: 14 }}>
-                Powers the Ask tab, smarter sorting in Log (any food, any phrasing), and the trading journal coach that reads your screenshots.
-                Get a key at console.anthropic.com, add about $5 of credit, and set a monthly spend limit there. The key stays on this device.
+                Powers the Ask tab (reports and advice from your data), smarter sorting in Log (any food, any phrasing), and the trading journal coach that reads your screenshots.
+                Get a key at platform.claude.com, add $5 to $20 of credit, and set a monthly spend limit there. The key stays on this device.
               </Body>
               <Field
                 label="Claude API key"
@@ -192,6 +194,24 @@ export function SettingsScreen({ visible, onClose }: { visible: boolean; onClose
                   }}
                 />
               </View>
+              <Field
+                label="About you (for Ask)"
+                value={aboutMe}
+                onChangeText={setAboutMe}
+                placeholder="e.g. 180 lb, want 180g protein a day, lifting push/pull/legs 4 days a week, sleep goal 8 hours"
+                multiline
+                maxLength={2000}
+                style={{ minHeight: 96, textAlignVertical: 'top' }}
+              />
+              <Button
+                small
+                variant="secondary"
+                title="Save about you"
+                onPress={() => {
+                  updateSettings({ aboutMe: aboutMe.trim() || undefined });
+                  flash('Saved. Ask will use this for advice.');
+                }}
+              />
             </Card>
 
             <Card style={{ gap: space.md }}>

@@ -10,7 +10,7 @@ Built with Expo (React Native), so the same code runs as an iPhone app (through 
 - **Log**: a chat box. "Chicken and rice, 2 waters, benched 225 for 5, slept 7 hours" becomes separate entries. Nutrition is estimated from a built-in table of ~52,000 USDA foods with real portion weights.
 - **Money**: buckets (latte factor, groceries, gas, fun, insurance, or your own) with per-paycheck rules ($, %, or $/day). "I got paid" splits a paycheck in bucket order and shows what's left to spend freely. Spending auto-comes out of the matching bucket.
 - **Trade**: a trading journal chat with screenshots, plus trades with P&L, win rate, and good/bad notes.
-- **Ask**: ask questions about anything logged ("how was my sleep this week?"). Needs a Claude API key.
+- **Ask**: questions and advice from everything logged ("how was my sleep this week?", "what should I eat to hit my protein?", "which muscle groups am I neglecting?"). Uses an optional "About you" note from Settings. Needs a Claude API key.
 - **Goals**: Congressional Award tracker and your own goals.
 - **Settings**: Claude API key, pay settings, backup and restore.
 
@@ -18,7 +18,7 @@ Data is saved on the device. Screenshots are stored separately (app files on the
 
 ## Claude connection
 
-Paste an Anthropic API key in Settings. The app calls the Claude API directly from the device; the key never goes in this repo. It powers Ask (tool use over local data), smarter log sorting, and the trading journal coach (reads screenshots). Set a monthly spend limit in the Claude Console.
+Paste an Anthropic API key (from platform.claude.com) in Settings. The app calls the Claude API directly from the device; the key never goes in this repo. It powers Ask (tool use over local data), smarter log sorting, and the trading journal coach (reads screenshots). Set a monthly spend limit in the Claude Console.
 
 ## Food data
 
@@ -45,7 +45,7 @@ Backup: `.github/workflows/publish.yml` does the same from GitHub Actions if run
 
 ## Turn on AI sorting (about $5 of API credit to start)
 
-1. Make a free Supabase project and an Anthropic API key (console.anthropic.com).
+1. Make a free Supabase project and an Anthropic API key (platform.claude.com).
 2. `npx supabase login`, `npx supabase link --project-ref <your-ref>`
 3. `npx supabase secrets set ANTHROPIC_API_KEY=sk-ant-...`
 4. `npx supabase functions deploy parse-log`

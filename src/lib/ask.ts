@@ -4,10 +4,12 @@ import { addDays, isValidDay, toDay } from './dates';
 import { moneyState } from './money';
 import { awardTotals, goalProgress, isWater, toOz } from './stats';
 import { sampler } from './aiParse';
+import { nutritionSummary, trainingSummary } from './coach';
+import { estimateNutrition } from './nutrition';
 
 /**
- * The Ask tab: Claude answers questions about everything in the app by
- * looking data up with tools. Nothing is sent except what it asks for.
+ * The Ask tab: Claude answers questions about everything in the app, and gives
+ * advice from it, by looking data up with tools. Nothing is sent except what it asks for.
  */
 
 const TOOLS: ToolDef[] = [
@@ -57,6 +59,28 @@ const TOOLS: ToolDef[] = [
     name: 'goals',
     description: 'Goals with current progress, and Congressional Award hours by area vs targets.',
     input_schema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'training',
+    description:
+      'Training breakdown for a date range (default last 28 days): sessions, sets, and days since last trained for each muscle group (including ones not trained), plus each lift with its last session, best set, estimated 1-rep max and change. Use for workout advice, neglected muscle groups, and progressive overload.',
+    input_schema: { type: 'object', properties: { start_date: { type: 'string' }, end_date: { type: 'string' } } },
+  },
+  {
+    name: 'nutrition',
+    description:
+      "Today's calories/protein/carbs so far with each item, 7- and 30-day daily averages (full days with food logged, not counting today), and the foods they eat most often with their usual protein and calories. Use for eating advice.",
+    input_schema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'food_lookup',
+    description:
+      'Estimated calories, protein, and carbs for foods with portions, e.g. ["3 eggs", "8 oz chicken breast", "fairlife protein shake"], from the app\'s 52,000-food table. Use this for numbers in food suggestions instead of guessing.',
+    input_schema: {
+      type: 'object',
+      properties: { foods: { type: 'array', items: { type: 'string' }, description: 'up to 12 foods with amounts' } },
+      required: ['foods'],
+    },
   },
 ];
 
@@ -194,17 +218,48 @@ export function runTool(data: AppData, name: string, input: any): unknown {
       congressional_award: { level: a.level, started: a.startedOn ?? null, hours: { service: r1(tot.service), personal: r1(tot.personal), fitness: r1(tot.fitness), expedition_prep: r1(tot.expedition) }, targets: a.targets, expedition_done: a.expeditionDone },
     };
   }
+  if (name === 'training') {
+    const [start, end] = range(input, 28);
+    return trainingSummary(data.entries, start, end, today);
+  }
+  if (name === 'nutrition') {
+    return nutritionSummary(data.entries, today);
+  }
+  if (name === 'food_lookup') {
+    const foods: string[] = Array.isArray(input?.foods) ? input.foods.filter((f: unknown) => typeof f === 'string').slice(0, 12) : [];
+    return {
+      foods: foods.map((f) => {
+        const n = estimateNutrition(f);
+        return n ? { food: f, calories: n.calories, protein_g: n.protein, carbs_g: n.carbs, estimated: true } : { food: f, found: false };
+      }),
+    };
+  }
   throw new Error(`Unknown tool ${name}`);
 }
 
-function systemPrompt(): string {
+function systemPrompt(data: AppData): string {
   const today = toDay();
   const weekday = new Date().toLocaleDateString('en-US', { weekday: 'long' });
-  return `You are the Ask tab in Lifelog, a personal tracker. You answer questions about the user's own logged data.
-Today is ${weekday}, ${today}. Use the tools to look things up. Never guess or invent numbers; if something isn't logged, say so plainly and say how to log it (for example "slept 7 hours" in the Log tab).
-Write a clear, specific report: lead with the direct answer, then the key numbers, dates, best/worst days, and trends. Compare to earlier periods when useful.
-Nutrition values marked "estimated" are averages; say "about" for them.
-Format for a phone screen as plain text: short paragraphs, simple "- " bullets, and short headings in capital letters. No tables, no markdown symbols like ** or #.`;
+  const about = data.settings.aboutMe?.trim();
+  return `You are the Ask tab in Lifelog, a personal tracker, acting as the user's coach. You know everything they've logged. You do two things:
+1. Answer questions about their data with the real numbers.
+2. Give advice based on that data: what to eat to hit their protein, which muscle groups or lifts they're neglecting and what to do next session, sleep habits, how their money buckets and spending look, patterns in their trading, and their pace toward goals and Congressional Award hours. When a report points to one clear, useful change, add it even if they didn't ask.
+
+Today is ${weekday}, ${today}.
+
+How to work:
+- Look things up with the tools before answering. Never guess or invent numbers; if something isn't logged, say so plainly and say how to log it (for example "slept 7 hours" in the Log tab).
+- Tie every suggestion to their numbers ("you're at 96g protein today"), then make it concrete: foods with amounts, lifts with sets, reps and weight based on their last sessions, dollar amounts for buckets.
+- For food ideas, prefer foods they already eat often (nutrition tool) and get the numbers from food_lookup.
+- Give 2 to 4 suggestions, the one that matters most first. Be direct and honest like a good coach: name the real problem if there is one. No hype, no filler.
+- Use the targets in "About the user" below and their goals. If a target they need is missing (like daily protein or bodyweight), say what you assumed and suggest adding it to "About you" in Settings or making a goal.
+- Training: progressive overload from their last sessions (small weight or rep increases), balance across muscle groups, and recovery if they trained that group in the last day or two.
+- Money: they don't budget; every paycheck gets split into buckets (Latte factor goes to retirement). Work within that system: bucket amounts, moves between buckets, spending patterns. General guidance only; don't pick specific stocks or funds.
+- Trading: coach the process (risk per trade, following their rules, what shows up in good vs bad trades, emotions, time of day). Never say what to trade or predict the market.
+- Health: everyday fitness, sleep, and nutrition guidance only. No diagnoses; for pain, injury, or symptoms, tell them to see a professional.
+- Nutrition values marked "estimated" are averages; say "about" for them.
+
+Format for a phone screen as plain text: short paragraphs, simple "- " bullets, and short headings in capital letters. No tables, no markdown symbols like ** or #.${about ? `\n\nAbout the user (they wrote this in Settings):\n${about}` : ''}`;
 }
 
 export type AskMode = 'key' | 'preview' | 'none';
@@ -228,7 +283,7 @@ export async function ask(question: string, history: ChatMessage[], data: AppDat
     return runWithTools({
       key: data.settings.claudeKey!,
       model: MODEL_SMART,
-      system: systemPrompt(),
+      system: systemPrompt(data),
       messages,
       tools: TOOLS,
       execute: (name, input) => runTool(data, name, input),
@@ -238,7 +293,7 @@ export async function ask(question: string, history: ChatMessage[], data: AppDat
   if (mode === 'preview') {
     const s = await sampler();
     const turns = messages.map((m) => ({ role: m.role, content: typeof m.content === 'string' ? m.content : '' }));
-    turns[turns.length - 1] = { role: 'user', content: `${systemPrompt()}\n\nQuestion: ${question}` };
+    turns[turns.length - 1] = { role: 'user', content: `${systemPrompt(data)}\n\nQuestion: ${question}` };
     const res = await s(turns, {
       modelTier: 'default',
       cache: false,

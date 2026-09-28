@@ -138,6 +138,7 @@ export interface Settings {
   aiEndpoint?: string; // Supabase function URL
   aiKey?: string; // Supabase anon key
   claudeKey?: string; // Anthropic API key, kept on this device only
+  aboutMe?: string; // what the Ask coach should know (weight, targets, training split)
   award: AwardSettings;
   pay: PaySettings;
   freeStart?: number; // free money on hand when buckets were set up

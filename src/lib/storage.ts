@@ -193,6 +193,7 @@ export function normalizeData(raw: any): AppData {
     aiEndpoint: str(s.aiEndpoint, 300),
     aiKey: str(s.aiKey, 1000),
     claudeKey: str(s.claudeKey, 300),
+    aboutMe: str(s.aboutMe, 2000),
     pay: {
       hourly: num(p.hourly) ?? DEFAULT_PAY.hourly,
       hoursPerDay: num(p.hoursPerDay) ?? DEFAULT_PAY.hoursPerDay,

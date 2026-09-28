@@ -7,12 +7,12 @@ import { useStore } from '../lib/store';
 import { font, space, useInsets, useTheme } from '../theme';
 
 const EXAMPLES = [
-  'How was my sleep this last week?',
-  'How much protein did I average this month?',
+  'What should I eat tonight to hit my protein?',
+  'Which muscle groups am I neglecting? Plan my next workout.',
+  'How was my sleep this last week, and what should I change?',
   'Where did my money go since my last paycheck?',
-  'How many Congressional Award hours do I have, and how far am I from Gold?',
-  'What were my best workout days and what did I lift?',
-  'How has my mood been lately, and does it line up with my sleep?',
+  'What patterns show up in my losing trades?',
+  'Am I on pace for Congressional Award Gold? What do I need each week?',
 ];
 
 const STEP_TEXT: Record<string, string> = {
@@ -22,6 +22,9 @@ const STEP_TEXT: Record<string, string> = {
   money: 'Checking your buckets…',
   trades: 'Reading your trading journal…',
   goals: 'Checking your goals…',
+  training: 'Checking your lifts…',
+  nutrition: 'Checking what you’ve been eating…',
+  food_lookup: 'Looking up foods…',
 };
 
 export function AskScreen({ onOpenSettings }: { onOpenSettings: () => void }) {
@@ -98,15 +101,15 @@ export function AskScreen({ onOpenSettings }: { onOpenSettings: () => void }) {
         busy={busy}
         busyText={step ?? 'Thinking…'}
         onSend={(text) => send(text)}
-        placeholder="Ask about anything you’ve logged"
+        placeholder="Ask about your data or for advice"
         empty={
           <View style={{ gap: space.md }}>
-            <Body dim>Ask anything about your data, from today back to your first entry. It looks up the real numbers and writes you a report.</Body>
+            <Body dim>Ask about anything you’ve logged, or ask for advice. It looks up your real numbers first, then gives you a report or a plan. Add your weight and targets under About you in Settings for better advice.</Body>
             {mode === 'none' ? (
               <Card style={{ gap: 8, borderColor: t.accent }}>
                 <Text style={{ color: t.text, fontFamily: font.labelBold, fontSize: 17, letterSpacing: 1, textTransform: 'uppercase' }}>Connect Claude first</Text>
                 <Body dim style={{ fontSize: 14 }}>
-                  Answers come from Claude. Add your own Claude API key in Settings (about $5 of credit lasts a long time for one person). Your key stays on this phone.
+                  Answers come from Claude. Add your own Claude API key in Settings (a question costs a few cents). Your key stays on this phone.
                 </Body>
                 <Pressable onPress={onOpenSettings} style={{ alignSelf: 'flex-start', paddingVertical: 4 }}>
                   <Text style={{ color: t.accent, fontFamily: font.labelBold, fontSize: 16, letterSpacing: 1, textTransform: 'uppercase' }}>Open Settings</Text>

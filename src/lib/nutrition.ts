@@ -138,6 +138,8 @@ const FOODS: Food[] = [
   { names: ['water', 'sparkling water', 'diet coke', 'coke zero', 'pepsi zero', 'diet soda', 'zero sugar', 'electrolytes', 'liquid iv'], per: n(0, 0, 0), def: 1 },
   { names: ['black coffee', 'coffee', 'tea', 'celsius'], per: n(5, 0, 1), def: 1 },
   { names: ['milkshake', 'milk shake'], per: n(600, 15, 90), def: 1 },
+  // a scoop of powder (about 30 g) mixed with water
+  { names: ['whey protein shake', 'whey shake', 'protein powder shake', 'whey protein', 'whey isolate', 'protein powder', 'scoops of protein', 'scoop of protein', 'scoops of whey', 'scoop of whey'], per: n(120, 24, 3), def: 1 },
   { names: ['protein shake', 'shake', 'whey'], per: n(160, 30, 6), def: 1 },
   { names: ['smoothie'], per: n(300, 6, 60), def: 1 },
   { names: ['chocolate milk'], per: n(210, 8, 30), def: 1 },
