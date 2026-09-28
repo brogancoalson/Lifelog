@@ -178,11 +178,13 @@ export interface LiftRecord {
 export function liftRecords(entries: Entry[]): LiftRecord[] {
   const map = new Map<string, LiftRecord>();
   for (const e of entries) {
+    const counted = new Set<string>();
     for (const l of e.lifts ?? []) {
       const key = l.name.trim().toLowerCase();
       if (!key) continue;
       const r = map.get(key) ?? { name: l.name.trim(), sessions: 0, lastDate: e.date, totalReps: 0 };
-      r.sessions += 1;
+      if (!counted.has(key)) r.sessions += 1;
+      counted.add(key);
       if (e.date > r.lastDate) r.lastDate = e.date;
       r.totalReps += (l.reps ?? 0) * (l.sets ?? 1);
       if (l.weight !== undefined && (r.bestWeight === undefined || l.weight > r.bestWeight)) {

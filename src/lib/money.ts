@@ -81,8 +81,11 @@ export function moneyState(data: AppData): MoneyState {
   for (const b of data.buckets) map.set(b.id, { bucket: b, balance: b.start ?? 0, added: b.start ?? 0, spent: 0 });
   let free = data.settings.freeStart ?? 0;
   let lastPaycheck: Entry | undefined;
+  // money logged before the buckets existed happened before this system started, so it doesn't count against "free to spend"
+  const since = data.buckets.reduce<string | undefined>((min, b) => (b.createdAt && (!min || b.createdAt < min) ? b.createdAt : min), undefined);
   for (const e of data.entries) {
     if (typeof e.money !== 'number' || e.money === 0) continue;
+    if (since && e.createdAt && e.createdAt < since) continue;
     if (e.money > 0) {
       let allocated = 0;
       for (const a of e.allocations ?? []) {

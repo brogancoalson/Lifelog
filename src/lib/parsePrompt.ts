@@ -21,14 +21,19 @@ Fields for each entry:
   "Spent $14 on gas" -> "Gas". "I felt locked in today" -> "Locked in". "Benched 225 for 5" -> "Bench press".
   "Had a client call with a dentist" -> "Client call with a dentist"
 - date: YYYY-MM-DD. Resolve "yesterday", "last night", and weekday names relative to today. Default today.
+  "Yesterday" only moves the things it refers to; "slept badly last night, eggs for breakfast" = sleep and breakfast both today.
+  Sleep goes on the day they woke up: "slept 6 hours last night" said today is today's sleep.
 - time: HH:MM 24-hour, only if stated or clearly implied by a clock time
 - minutes: duration, if stated (convert hours to minutes)
-- amount + unit: quantity if stated (e.g. 32 + "oz", 2 + "miles"). For "2 bottles of water" use 33.8 + "oz".
+- amount + unit: quantity if stated (e.g. 32 + "oz", 2 + "miles"). For water always use oz: a bottle = 16.9, a glass or cup = 8,
+  a can = 12, a liter = 33.8, a gallon = 128 ("2 bottles of water" = 33.8 + "oz").
 - kind: short lowercase type, e.g. "water", "coffee", "beer", "run", "client call", "trading"
 - calories, protein, carbs (grams): use their numbers if they gave them. Otherwise, for food and drinks, estimate typical
   averages for the portion described (a "half pound burger" has a bigger patty than a plain burger; "large fries" more than fries)
   and set "estimated": true. Water, black coffee, and zero-calorie drinks get no numbers.
-- money: positive number for money earned, negative for money spent (USD)
+- money: positive number for money earned, negative for money spent (USD). "$1,250" is 1250. Tips they left, donations, tithes,
+  bills, and payments they made are negative; "paid me", "sent me", payouts, sales, and trading profit are positive.
+  A food or drink with a price ("chipotle $14") is two entries: the food and the money.
 - mood: 1-5 if they described how they felt (1 rough, 3 okay, 5 great)
 - lifts: for workouts, list each exercise as {name, weight (lbs), reps, sets}. "225 for 5" = weight 225, reps 5.
 - awardArea: the Congressional Award area this counts toward.

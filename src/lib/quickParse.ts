@@ -1,7 +1,7 @@
 import type { AwardArea, Category, Entry, Lift } from '../types';
 import { explicitAward, isTagOnly, mentionsAward, stripAwardTag, taggable, tagCoversAll } from './awardTag';
 import { addDays, toDay, toTime, uid } from './dates';
-import { withEstimate } from './nutrition';
+import { isCuratedFood, withEstimate } from './nutrition';
 
 /**
  * Offline "quick sort": a keyword-based parser used when AI sorting isn't
@@ -10,34 +10,48 @@ import { withEstimate } from './nutrition';
 
 const RE = {
   sleep: /\b(slept|sleep|asleep|nap|napped|went to bed|bed at|woke up|wake up|woke at)\b/i,
-  moneyAmt: /\$\s?(\d[\d,]*(?:\.\d+)?)|(\d[\d,]*(?:\.\d+)?)\s?(?:bucks|dollars|usd)\b/i,
-  moneyIn: /\b(made|make|sold|earned|got paid|profit|revenue|income|won|received|paid me|tip|tips|commission)\b/i,
-  moneyOut: /\b(spent|spend|bought|buy|paid|pay|cost|costs|purchase[d]?|bill|subscription|lost)\b/i,
-  mood: /\b(felt|feel|feeling|mood|stressed|anxious|tired|exhausted|happy|sad|motivated|locked in|energized|grateful|blessed|down|burnt out|burned out|frustrated|peaceful|pumped)\b/i,
+  // every way an amount of money gets written: $1,250  $7.25  $5k  40 bucks  2 grand
+  moneyAll: /\$\s?\d[\d,]*(?:\.\d+)?(?:\s?k\b)?|\b\d[\d,]*(?:\.\d+)?\s?(?:bucks|dollars|usd|grand)\b/gi,
+  // clearly money coming in, checked first ("paid me" beats "paid")
+  moneyInStrong:
+    /\b(got paid|paid me|pay me|paid (?:me )?back|sent me|gave me|venmo(?:ed|'d)? me|zelle(?:d|'d)? me|cash ?app(?:ed|'d)? me|earned|received|sold|won|profit|revenue|income|commission|refund(?:ed)?|payout|paycheck|made \$|made \d|up \$|up \d|got \$|got an? \$|in tips|\d+ (?:orders|sales))\b/i,
+  moneyOut:
+    /\b(spent|spend|bought|buy|paid|pay|payment|donat(?:ed|ion|e)|tithe|gave|tipped|left an?|bill|rent|subscription|cost|costs|purchased?|lost|loss|down \$|down \d|venmo(?:ed|'d)?|zelle(?:d)?|sent|fee|fine|ticket|owed?)\b/i,
+  moneyInWeak: /\b(made|make|got|tips|tip money)\b/i,
+  moneyRate: /\$\s?\d[\d,.]*\s*(?:\/|an?|per)\s*(?:hour|hr|h|day|week|month)\b/i,
+  mood: /\b(felt|feel|feeling|mood|stressed|anxious|tired|exhausted|happy|sad|motivated|locked in|energized|grateful|blessed|down|burnt out|burned out|frustrated|peaceful|pumped|(?:great|good|bad|rough|long|amazing|terrible|awful) day)\b/i,
   workout:
-    /\b(bench(?:ed)?|squat(?:ted)?|deadlift(?:ed)?|dl|ohp|overhead press|press(?:ed)?|curl(?:ed)?|rows?|pull-?ups?|push-?ups?|dips|lift(?:ed)?|gym|work(?:ed)? ?out|leg day|chest day|back day|arm day|push day|pull day|ran|run|jog(?:ged)?|miles?|cardio|sprints?|hiit|swim|swam|bike|biked|cycling|stairmaster|incline walk|hike|hiked|hiking|basketball|football|soccer|tennis|pickleball|volleyball|baseball|softball|hockey|wrestling|boxing|jiu ?jitsu|bjj|mma|climbing|bouldering|yoga|pilates|skated|skating|surfed|surfing)\b/i,
+    /\b(bench(?:ed)?|squats?|squatted|deadlifts?|deadlifted|dl|ohp|overhead press|pull ?downs?|lat pull|rdls?|lunges?|leg curls?|leg ext(?:ension)?s?|flyes|flys|lateral raises?|lat raises?|shrugs?|hip thrusts?|calf raises?|skull ?crushers?|triceps?|push ?downs?|preacher|(?:bench|leg|military|shoulder|incline|decline|dumbbell|db|chest|push) press(?:ed)?|curls?|curled|rows?|pull[- ]?ups?|push[- ]?ups?|chin[- ]?ups?|dips|lifts?|lifted|lifting|gym|work(?:ed)? ?out|leg day|chest day|back day|arm day|push day|pull day|ran|run|jog(?:ged)?|miles?|cardio|sprints?|hiit|swim|swam|bike|biked|cycling|stairmaster|incline walk|(?:hit|trained|did|worked)\s+(?:legs|chest|back|arms|shoulders|abs|core|glutes|upper(?: body)?|lower(?: body)?)|hike|hiked|hiking|basketball|football|soccer|tennis|pickleball|volleyball|baseball|softball|hockey|wrestling|boxing|jiu ?jitsu|bjj|mma|climbing|bouldering|yoga|pilates|skated|skating|surfed|surfing)\b/i,
   business:
-    /\b(meeting|client|clients|call with|orders?|sales?|posted|post|reel|video|edited|editing|shipped|invoice|emailed|website|store|shop|wix|unconquered|coverpoint|agency|lead|leads|pitched|outreach|traded|trading|trade|content|filmed|recorded|designed)\b/i,
+    /\b(meeting|client|clients|call with|orders?|sales?|posted|post|reel|video|edited|editing|shipped|invoice|emailed|website|my store|online store|my shop|wix|unconquered|coverpoint|agency|lead|leads|pitched|outreach|traded|trading|trade|content|filmed|recorded|designed)\b/i,
   social: /\b(date|date night|girlfriend|gf|hung out|hangout|friends?|family|mom|dad|brother|sister|party|dinner with|lunch with|coffee with)\b/i,
   service: /\b(volunteer(?:ed|ing)?|food bank|community service|served at|serving at|helped at|mission|outreach at|soup kitchen|cleanup)\b/i,
   personal: /\b(studied|study|studying|read|reading|course|class|lesson|learned|learning|practiced|practice|bible study|scripture|journaled|boater)\b/i,
   drink:
-    /\b(water|waters|coffee|tea|beer|beers|wine|drank|drink|drinks|soda|protein shake|shake|energy drink|monster|celsius|juice|electrolytes|gatorade|liquid iv|smoothie)\b/i,
+    /\b(water|waters|coffees?|teas?|beers?|wines?|drank|drink|drinks|sodas?|protein shakes?|shakes?|energy drinks?|monsters?|celsius(?:es)?|juices?|electrolytes|gatorades?|powerade|liquid iv|smoothies?|white claws?|seltzers?|twisted teas?|margaritas?|cocktails?|lattes?|cappuccinos?|espressos?|frappuccinos?|matcha|kombucha|milk|chocolate milk|lemonade|red ?bulls?|body ?armor|sparkling water)\b/i,
   food:
     /\b(ate|eat|eating|had|breakfast|lunch|dinner|snack|meal|chicken|rice|eggs?|steak|beef|pizza|burger|salad|oatmeal|oats|sandwich|tacos?|burrito|pasta|fish|salmon|toast|bagel|fruit|banana|apple|yogurt|protein bar|cereal|fries|wings)\b/i,
-  activity: /\b(went|did|played|golf(?:ed)?|hiked?|walked|walk|cleaned|drove|fished|fishing|boat|shooting|church|prayed|worked)\b/i,
+  activity: /\b(went|did|played|golf(?:ed)?|hiked?|walked|walk|cleaned|drove|fished|fishing|boat|shooting|church|prayed|worked|errands?|shopping|store)\b/i,
   yesterday: /\b(yesterday|last night)\b/i,
   hours: /(\d+(?:\.\d+)?)\s*(?:h|hr|hrs|hour|hours)\b/i,
   mins: /(\d+)\s*(?:m|min|mins|minute|minutes)\b/i,
   halfHour: /\bhalf (?:an )?hour\b/i,
-  anHour: /\ban hour\b/i,
+  anHour: /\b(?:an|one|a full)\s+hour\b|^\s*hour\b/i,
   volume: /(\d+(?:\.\d+)?)\s*(oz|ounces?|cups?|bottles?|glasses?|cans?|l|liters?|litres?|ml|gallons?)\b/i,
-  countDrink: /\b(\d+|a|an|one|two|three|four|five)\s+(waters|water|coffees?|beers?|drinks?|bottles? of water|glasses? of water)\b/i,
+  countDrink: /\b(\d+|a|an|one|two|three|four|five|a couple(?: of)?)\s+(waters|water|coffees?|beers?|drinks?|(?:bottles?|glass(?:es)?|cans?|cups?|mugs?) of water)\b/i,
 };
 
-const WORD_NUM: Record<string, number> = { a: 1, an: 1, one: 1, two: 2, three: 3, four: 4, five: 5 };
+const WORD_NUM: Record<string, number> = { a: 1, an: 1, one: 1, two: 2, three: 3, four: 4, five: 5, 'a couple': 2, 'a couple of': 2 };
+const NUM_WORDS: Record<string, string> = { one: '1', two: '2', three: '3', four: '4', five: '5', six: '6', seven: '7', eight: '8', nine: '9', ten: '10', eleven: '11', twelve: '12', fifteen: '15', twenty: '20', thirty: '30', forty: '40', 'forty five': '45', 'forty-five': '45', fifty: '50', sixty: '60', ninety: '90' };
+/** oz in one container of water */
+const CONTAINER_OZ = (what: string) => (/glass|cup/i.test(what) ? 8 : /can|mug/i.test(what) ? 12 : 16.9);
 
-function minutesIn(s: string): number | undefined {
+function minutesIn(s0: string): number | undefined {
+  // "seven hours" -> "7 hours"
+  const s = s0.replace(/\b(forty[- ]five|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|fifteen|twenty|thirty|forty|fifty|sixty|ninety)\b(?=\s+(?:and a half\s+)?(?:hours?|hrs?|minutes?|mins?)\b)/gi, (w) => NUM_WORDS[w.toLowerCase()]);
+  // "2h30", "1h 15m"
+  const hm = s.match(/\b(\d+)\s*h\s*(\d{1,2})\s*(?:m|min|mins)?\b/i);
+  if (hm) return +hm[1] * 60 + +hm[2];
   const andHalf = s.match(/\b(an?|one|\d+)\s+(?:and a half\s+(?:h|hr|hrs|hours?)|(?:h|hr|hrs|hours?)\s+and a half)\b/i);
   if (andHalf) {
     const n = /^(an?|one)$/i.test(andHalf[1]) ? 1 : parseInt(andHalf[1], 10);
@@ -54,15 +68,30 @@ function minutesIn(s: string): number | undefined {
 }
 
 const LIFT_NAMES: [RegExp, string][] = [
+  // specific names first so "leg curl" isn't a curl and "rdl" isn't a deadlift
+  [/incline (?:bench|press|db|dumbbell)/i, 'Incline bench press'],
+  [/\brdls?\b|romanian/i, 'Romanian deadlift'],
+  [/leg curl/i, 'Leg curl'],
+  [/leg press/i, 'Leg press'],
+  [/leg ext/i, 'Leg extension'],
+  [/lat pull|pull ?downs?/i, 'Lat pulldown'],
+  [/lat(?:eral)? raises?/i, 'Lateral raise'],
+  [/shoulder press|military press/i, 'Shoulder press'],
   [/bench/i, 'Bench press'],
   [/squat/i, 'Squat'],
   [/deadlift|\bdl\b/i, 'Deadlift'],
   [/ohp|overhead press/i, 'Overhead press'],
   [/curl/i, 'Curl'],
   [/row/i, 'Row'],
-  [/pull-?up/i, 'Pull-up'],
-  [/push-?up/i, 'Push-up'],
+  [/pull[- ]?up|chin[- ]?up/i, 'Pull-up'],
+  [/push[- ]?up/i, 'Push-up'],
   [/dips/i, 'Dips'],
+  [/lunges?/i, 'Lunge'],
+  [/hip thrusts?/i, 'Hip thrust'],
+  [/calf raises?/i, 'Calf raise'],
+  [/shrugs?/i, 'Shrug'],
+  [/triceps?|skull ?crushers?|push ?downs?/i, 'Triceps'],
+  [/\bfl(?:y|ys|ies|yes)\b/i, 'Fly'],
 ];
 
 function parseLifts(s: string): Lift[] {
@@ -77,6 +106,30 @@ function parseLifts(s: string): Lift[] {
       lifts.push({ name, sets: +m[1], reps: +m[2], weight: +m[3] });
       continue;
     }
+    // "225 5x5" (weight, then sets x reps)
+    m = part.match(/(\d{2,4})\s*(?:lbs?|pounds)?\s+(\d{1,2})\s*[x×]\s*(\d{1,2})\b/i);
+    if (m) {
+      lifts.push({ name, weight: +m[1], sets: +m[2], reps: +m[3] });
+      continue;
+    }
+    // "225 for 5 sets of 5"
+    m = part.match(/(\d{2,4})\s*(?:lbs?|pounds)?\s*(?:for|x)\s*(\d{1,2})\s*sets?\s*(?:of|x)\s*(\d{1,2})/i);
+    if (m) {
+      lifts.push({ name, weight: +m[1], sets: +m[2], reps: +m[3] });
+      continue;
+    }
+    // "pull ups 3x10" (small first number = sets)
+    m = part.match(/\b(\d{1,2})\s*[x×]\s*(\d{1,2})\b(?!\s*(?:at|@))/i);
+    if (m && +m[1] <= 10) {
+      lifts.push({ name, sets: +m[1], reps: +m[2] });
+      continue;
+    }
+    // "5 sets of 5 at 225"
+    m = part.match(/(\d+)\s*sets?\s*of\s*(\d+)[^\d]*?(?:at|@|with)\s*(\d+)/i);
+    if (m) {
+      lifts.push({ name, sets: +m[1], reps: +m[2], weight: +m[3] });
+      continue;
+    }
     // "225 for 5" / "225x5" / "225 x 5 x 3"
     m = part.match(/(\d{2,4})\s*(?:lbs?|pounds)?\s*(?:x|×|for)\s*(\d{1,2})(?:\s*(?:x|×|for)\s*(\d{1,2}))?/i);
     if (m) {
@@ -84,9 +137,15 @@ function parseLifts(s: string): Lift[] {
       continue;
     }
     // "50 push-ups"
-    m = part.match(/(\d+)\s*(?:reps?\s*(?:of)?\s*)?(?:push-?ups?|pull-?ups?|dips)/i);
+    m = part.match(/(\d+)\s*(?:reps?\s*(?:of)?\s*)?(?:push[- ]?ups?|pull[- ]?ups?|chin[- ]?ups?|dips)/i);
     if (m) {
       lifts.push({ name, reps: +m[1] });
+      continue;
+    }
+    // "hit a PR on squat 365"
+    m = part.match(/\b(\d{2,4})\s*(?:lbs?|pounds)?\b/i);
+    if (m && +m[1] >= 45 && +m[1] <= 1200) {
+      lifts.push({ name, weight: +m[1] });
       continue;
     }
     lifts.push({ name });
@@ -96,9 +155,9 @@ function parseLifts(s: string): Lift[] {
 
 function moodScore(s: string): number {
   if (/\b(great|amazing|locked in|pumped|blessed|energized|motivated|awesome|peaceful|grateful)\b/i.test(s)) return 5;
-  if (/\b(good|happy|solid|fine|productive)\b/i.test(s)) return 4;
+  if (/\b(good|happy|solid|fine|productive|strong|confident)\b/i.test(s)) return 4;
   if (/\b(okay|ok|meh|alright)\b/i.test(s)) return 3;
-  if (/\b(tired|stressed|anxious|down|frustrated|low)\b/i.test(s)) return 2;
+  if (/\b(tired|stressed|anxious|down|frustrated|low|bad|rough|long)\b/i.test(s)) return 2;
   if (/\b(terrible|awful|sad|exhausted|burnt out|burned out|depressed)\b/i.test(s)) return 1;
   return 3;
 }
@@ -114,9 +173,12 @@ const cap = (t: string) => (t ? t.charAt(0).toUpperCase() + t.slice(1) : t);
 function stripCommon(s: string): string {
   let t = ` ${s.trim()} `;
   t = t.replace(/[.!?]+(\s|$)/g, ' ');
-  t = t.replace(/\b(today|yesterday|last night|this morning|this afternoon|this evening|tonight|earlier|just now)\b/gi, ' ');
+  t = t.replace(/\b(today|yesterday|last night|this morning|this afternoon|this evening|tonight|earlier|just now|this week|last week|this month|last month)\b/gi, ' ');
   t = t.replace(/\b(for\s+)?(about\s+|like\s+|around\s+)?(an?|one|\d+)\s+(and a half\s+(hours?|hrs?|h)|(hours?|hrs?|h)\s+and a half)\b/gi, ' ');
-  t = t.replace(/\b(for\s+)?(about\s+|like\s+|around\s+)?(\d+(\.\d+)?|an?|half an?)\s*(h|hr|hrs|hour|hours|m|min|mins|minute|minutes)\b/gi, ' ');
+  t = t.replace(/\b(for\s+)?(about\s+|like\s+|around\s+)?\d+\s*h\s*\d{1,2}\s*(m|min|mins)?\b/gi, ' ');
+  t = t.replace(/\b(for\s+)?(about\s+|like\s+|around\s+)?(\d+(\.\d+)?|an?|half an?|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\s*(h|hr|hrs|hour|hours|m|min|mins|minute|minutes)\b(\s+of\b)?/gi, ' ');
+  // "chicken and rice after the gym" -> "chicken and rice"
+  t = t.replace(/\b(after|before|post|pre)[- ]?(the |my |a |our )?(gym|workout|work out|lift|lifting|run|practice|training|game|session)\b/gi, ' ');
   t = t.trim();
   // leading fillers and "I"
   for (let i = 0; i < 3; i++) {
@@ -143,7 +205,7 @@ export function itemText(category: Category, chunk: string, e: Partial<Entry> = 
       break;
     }
     case 'drink': {
-      t = t.replace(/^(drank|drink|drinking|had|have|chugged|downed|finished|got)\s+/i, '');
+      t = t.replace(/^(drank|drink|drinking|had|have|chugged|downed|finished|got|grabbed|ordered|picked up|sipped)\s+/i, '');
       t = t.replace(RE.volume, ' ').replace(RE.countDrink, (_m, _n, what: string) => ` ${what.replace(/s$/i, '')} `);
       t = t.replace(/\b(\d+(\.\d+)?|a|an|one|two|three|four|five)?\s*(bottles?|glass(es)?|cups?|cans?|mugs?|shots?)\s+of\s+/gi, ' ');
       t = t.replace(/^\s*of\s+/i, '');
@@ -169,8 +231,9 @@ export function itemText(category: Category, chunk: string, e: Partial<Entry> = 
       break;
     }
     case 'money': {
-      t = t.replace(RE.moneyAmt, ' ');
-      t = t.replace(/^(spent|spend|paid|pay|bought|buy|made|make|earned|got paid|got|sold|received|lost|won|picked up)\s+/i, '');
+      t = t.replace(RE.moneyAll, ' ').replace(/\s{2,}/g, ' ').trim();
+      t = t.replace(/^(spent|spend|paid me back|paid me|paid|pay|bought|buy|made|make|earned|got paid|got|sold|received|lost|won|picked up|sent me|gave me|had|ate|grabbed)(\s+|$)/i, '');
+      t = t.replace(/\s+(it was|was|it cost|cost|costs|for)\s*$/i, '');
       t = t.replace(/^\s*(on|for|from|at|with|in|off|of)\s+/i, '');
       t = t.replace(/\s+(on|for|from|at|with|in)\s*$/i, '');
       t = stripArticle(t.replace(/\s{2,}/g, ' ').trim());
@@ -187,6 +250,7 @@ export function itemText(category: Category, chunk: string, e: Partial<Entry> = 
     case 'business':
     case 'social': {
       t = t.replace(/^(had|did|went on|went to|went|got)\s+(a|an|my)?\s*/i, '');
+      t = t.replace(/^spent\s+(time\s+)?(on\s+|at\s+)?(the\s+|my\s+)?/i, '');
       break;
     }
     default:
@@ -195,11 +259,48 @@ export function itemText(category: Category, chunk: string, e: Partial<Entry> = 
   return cap(t.replace(/\s{2,}/g, ' ').trim()) || cap(chunk.trim());
 }
 
-function classify(s: string): Category {
-  const hasMoney = RE.moneyAmt.test(s) && (RE.moneyIn.test(s) || RE.moneyOut.test(s));
-  if (hasMoney) return 'money';
+/** The amount of money in a message: "$1,250" -> 1250, "$5k" / "2 grand" -> 5000 / 2000, "40 bucks" -> 40. */
+export function moneyAmount(s: string): number | undefined {
+  const m = s.match(/\$\s?(\d[\d,]*(?:\.\d+)?)(\s?k\b)?|\b(\d[\d,]*(?:\.\d+)?)\s?(bucks|dollars|usd|grand)\b/i);
+  if (!m) return undefined;
+  const n = parseFloat((m[1] ?? m[3]).replace(/,/g, ''));
+  if (!Number.isFinite(n)) return undefined;
+  return m[2] || m[4]?.toLowerCase() === 'grand' ? n * 1000 : n;
+}
+
+function isIncome(s: string): boolean {
+  if (RE.moneyInStrong.test(s)) return true;
+  if (RE.moneyOut.test(s)) return false;
+  return RE.moneyInWeak.test(s);
+}
+
+function isMoney(s: string): boolean {
+  if (moneyAmount(s) === undefined) return false;
+  if (RE.moneyInStrong.test(s) || RE.moneyOut.test(s) || RE.moneyInWeak.test(s)) return true;
+  // "coffee $6", "starbucks latte $7.25": a price with no verb is spending (but "$20 an hour" is a rate)
+  return /\$\s?\d|\d\s?(bucks|dollars)\b/i.test(s) && !RE.moneyRate.test(s);
+}
+
+/** Take out phrases that fool the keyword rules: "after the gym", "ran errands", "drove 50 miles", "watched football". */
+function forClassify(s: string): string {
+  let c = ` ${s} `;
+  c = c.replace(/\b(after|before|post|pre)[- ]?(the |my |a |our )?(gym|workout|work out|lift|lifting|run|practice|training|game|session)\b/gi, ' ');
+  c = c.replace(/\b(ran|run|running|runs)\s+(errands?|to|into|out|late|over|across|through|around town|a (meeting|business|company|errand))\b/gi, ' ');
+  c = c.replace(/\b(french|cold|garlic|hand)\s+press(ed)?\b/gi, ' ');
+  c = c.replace(/\bhad\s+(?:a|an|the|my|some)?\s*(?=(?:great|good|bad|rough|long|fun|nice|productive|busy|meeting|call|date|talk|conversation|day|time|night|blast|session|class|lesson|headache|dream)\b)/gi, ' ');
+  if (/\b(drove|drive|driving|flew|flight|commuted?|road trip|uber|lyft)\b/i.test(c)) c = c.replace(/\b\d*\s*(mi|miles?)\b/gi, ' ');
+  if (/\bwatch(ed|ing)?\b/i.test(c) && !/\bplay(ed|ing)?\b/i.test(c)) {
+    c = c.replace(/\b(basketball|football|soccer|tennis|pickleball|volleyball|baseball|softball|hockey|wrestling|boxing|mma|ufc|golf|video|videos|youtube|reels?|content)\b/gi, ' ');
+  }
+  return c.replace(/\s{2,}/g, ' ').trim();
+}
+
+function classify(s0: string): Category {
+  if (isMoney(s0)) return 'money';
+  const s = forClassify(s0);
   if (RE.sleep.test(s)) return 'sleep';
   if (RE.workout.test(s)) return 'workout';
+  if (/^\s*(legs|arms|chest|back|shoulders|abs|core|glutes|bis|tris|delts|push|pull|upper body|lower body)\b/i.test(s) && minutesIn(s)) return 'workout';
   if (RE.service.test(s) || RE.personal.test(s)) return 'activity';
   if (RE.social.test(s)) return 'social';
   if (RE.business.test(s)) return 'business';
@@ -207,32 +308,72 @@ function classify(s: string): Category {
   if (RE.food.test(s)) return 'food';
   if (RE.mood.test(s)) return 'mood';
   if (RE.activity.test(s) || minutesIn(s)) return 'activity';
+  // a short phrase that names a known food ("chipotle bowl", "quest bar") is food
+  if (s.split(/\s+/).length <= 5 && !/\d{2,}/.test(s) && !/\b(watch(ed|ing)?|went|go|going|played|drove|called|texted|need|want|should|remember)\b/i.test(s) && isCuratedFood(s)) return 'food';
   return 'note';
 }
 
 export function quickParse(message: string, now: Date = new Date()): Entry[] {
   const today = toDay(now);
-  const globalYesterday = RE.yesterday.test(message);
+  const yesterday = addDays(today, -1);
+  // when one thing gets split in two, both halves keep "last night" / "yesterday"
+  const keepWhen = (parts: string[], whole: string) => {
+    const when = whole.match(/\b(yesterday|last night)\b/i)?.[1];
+    return when ? parts.map((p) => (new RegExp(`\\b${when}\\b`, 'i').test(p) ? p : `${p} ${when}`)) : parts;
+  };
   const chunks = message
-    .split(/\n|;|,|\.\s+|\bthen\b/i)
+    // commas split things, but not the one in "$1,250"
+    .split(/\n|;|,(?!\d{3}\b)|\.\s+|\bthen\b/i)
     .map((c) => c.trim())
     .filter((c) => c.length > 1)
+    // "went to bed at 11:30, woke up at 7" is one sleep
+    .reduce<string[]>((acc, c) => {
+      const prev = acc[acc.length - 1];
+      if (prev && /\b(bed|asleep|slept)\b/i.test(prev) && !/\b(woke|wake)\b/i.test(prev) && /^\s*(and\s+)?(woke|wake|got up)\b/i.test(c)) acc[acc.length - 1] = `${prev} and ${c}`;
+      else acc.push(c);
+      return acc;
+    }, [])
     // "32 oz of water and a coffee" -> two drinks
     // "volunteered 2 hours and read for an hour" -> two things, each with its own time
     .flatMap((c) => {
       const halves = c.split(/\s+and\s+(?!a half)/i);
-      if (halves.length === 2 && halves.every((h) => minutesIn(h))) return halves;
+      if (halves.length === 2 && halves.every((h) => minutesIn(h))) return keepWhen(halves, c);
       return [c];
     })
+    // "chipotle $14", "had a burrito it was $12" -> the food, and the money
     .flatMap((c) => {
-      if (classify(c) !== 'drink' || !/\band\b/i.test(c)) return [c];
+      if (!isMoney(c) || RE.moneyInStrong.test(c) || RE.moneyOut.test(c) || RE.moneyInWeak.test(c)) return [c];
+      const food = c.replace(RE.moneyAll, ' ').replace(/\s+(it was|was|it cost|for|at)\s*$/i, '').replace(/\s{2,}/g, ' ').trim();
+      const cat = food ? classify(food) : 'note';
+      return cat === 'food' || cat === 'drink' ? keepWhen([food, c], c) : [c];
+    })
+    // "took my girlfriend on a date spent $80 on dinner" -> the date, and the money
+    .flatMap((c) => {
+      const m = c.match(/^(.{6,}?)\s+(?:and\s+)?((?:spent|paid|bought)\s+\$.*)$/i);
+      if (m && !['note', 'money'].includes(classify(m[1]))) return keepWhen([m[1], m[2]], c);
+      return [c];
+    })
+    // "2 beers and a white claw" -> two drinks; "oatmeal and coffee" -> a food and a drink
+    .flatMap((c) => {
+      if (!/\band\b/i.test(c) || isMoney(c)) return [c];
+      const cat = classify(c);
+      if (cat !== 'drink' && cat !== 'food') return [c];
       const parts = c.split(/\s+and\s+/i);
-      return parts.every((p) => RE.drink.test(p)) ? parts : [c];
+      if (parts.length < 2) return [c];
+      const cats = parts.map((p) => (RE.drink.test(p) ? 'drink' : classify(p)));
+      if (cats.every((x) => x === 'drink')) return keepWhen(parts, c);
+      if (cats.every((x) => x === 'drink' || x === 'food') && cats.includes('drink') && cats.includes('food')) return keepWhen(parts, c);
+      return [c];
     });
 
   const out: Entry[] = [];
   let pendingTag: AwardArea | undefined;
+  // "yesterday" carries on to the next things said; "last night" is just that one thing
+  let saidYesterday = false;
   for (const raw of chunks) {
+    if (/\b(today|this morning|this afternoon|this evening|tonight)\b/i.test(raw)) saidYesterday = false;
+    if (/\byesterday\b/i.test(raw)) saidYesterday = true;
+    const lastNight = /\blast night\b/i.test(raw);
     // "..., that goes towards personal development" tags the thing before it instead of becoming its own entry
     if (isTagOnly(raw)) {
       const area = explicitAward(raw);
@@ -249,7 +390,9 @@ export function quickParse(message: string, now: Date = new Date()): Entry[] {
     let category = classify(chunk);
     if (tag && !taggable(category)) category = 'activity';
     if (tag && category === 'note') category = 'activity';
-    const date = RE.yesterday.test(chunk) || globalYesterday ? addDays(today, -1) : today;
+    // sleep goes on the morning they woke up: "slept 6 hours last night" is today's sleep
+    const isYesterday = category === 'sleep' ? saidYesterday && !lastNight : saidYesterday || lastNight;
+    const date = isYesterday ? yesterday : today;
     const e: Entry = {
       id: uid(),
       createdAt: now.toISOString(),
@@ -263,12 +406,10 @@ export function quickParse(message: string, now: Date = new Date()): Entry[] {
     if (minutes) e.minutes = minutes;
 
     if (category === 'money') {
-      const m = chunk.match(RE.moneyAmt)!;
-      const amt = parseFloat((m[1] ?? m[2]).replace(/,/g, ''));
-      const isIn = RE.moneyIn.test(chunk) && !/\b(spent|bought|paid for|cost)\b/i.test(chunk);
-      e.money = isIn ? amt : -amt;
-      if (/\b(order|sale|sold|store|shirt|hoodie|unconquered)\b/i.test(chunk)) e.kind = 'business';
-      if (/\btrad(e|ed|ing)\b/i.test(chunk)) e.kind = 'trading';
+      const amt = moneyAmount(chunk) ?? 0;
+      e.money = isIncome(chunk) ? amt : -amt;
+      if (/\b(orders?|sales?|sold|store|shirts?|hoodies?|unconquered)\b/i.test(chunk)) e.kind = 'business';
+      if (/\b(trad(e|ed|ing)|mes|es|nq|mnq|funded account|prop firm|futures)\b/i.test(chunk)) e.kind = 'trading';
     }
     if (category === 'workout') {
       const lifts = parseLifts(chunk);
@@ -289,16 +430,25 @@ export function quickParse(message: string, now: Date = new Date()): Entry[] {
       } else if (c) {
         const n = WORD_NUM[c[1].toLowerCase()] ?? parseInt(c[1], 10);
         const isWater = /water/i.test(c[2]);
-        e.amount = isWater ? n * 16.9 : n;
+        e.amount = isWater ? Math.round(n * CONTAINER_OZ(c[2]) * 10) / 10 : n;
         e.unit = isWater ? 'oz' : 'drinks';
+      }
+      // "a gallon of water", "half a liter of water", "a glass of water"
+      if (e.amount === undefined) {
+        const one = chunk.match(/\b(a|an|one|half a|half an)\s+(gallon|liter|litre|bottle|glass|can|cup|mug)\b/i);
+        if (one) {
+          e.amount = /^half/i.test(one[1]) ? 0.5 : 1;
+          e.unit = one[2].toLowerCase();
+        }
       }
       e.kind = drinkKind(chunk);
     }
     if (category === 'mood') e.mood = moodScore(chunk);
     if (category === 'sleep') {
       // "went to bed at 11 and woke up at 6:30"
-      const bed = chunk.match(/\b(?:bed|slept|asleep|sleep)\b[^0-9]*(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);
-      const wake = chunk.match(/\b(?:woke|wake|up)\b[^0-9]*(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);
+      const sc = chunk.replace(/\bmidnight\b/gi, '12am').replace(/\bnoon\b/gi, '12pm');
+      const bed = sc.match(/\b(?:bed|slept|asleep|sleep)\b(?:(?!\b(?:woke|wake|up)\b)[^0-9])*(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);
+      const wake = sc.match(/\b(?:woke|wake|up)\b[^0-9]*(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);
       if (!e.minutes && bed && wake) {
         const toMin = (h: number, m: number, ap: string | undefined, isBed: boolean) => {
           let hh = h % 12;
@@ -310,6 +460,19 @@ export function quickParse(message: string, now: Date = new Date()): Entry[] {
         const mins = (w - b + 1440) % 1440;
         if (mins >= 60 && mins <= 16 * 60) e.minutes = mins;
       }
+      // "slept from 11pm to 7am", "slept 11-7"
+      const span = !e.minutes ? chunk.match(/\b(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\s*(?:to|until|til|till|-|–)\s*(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\b/i) : null;
+      if (span) {
+        let b = (+span[1] % 12) * 60 + +(span[2] ?? 0);
+        if (span[3] ? span[3].toLowerCase() === 'pm' : +span[1] >= 7) b += 12 * 60;
+        let w = (+span[4] % 12) * 60 + +(span[5] ?? 0);
+        if (span[6]?.toLowerCase() === 'pm') w += 12 * 60;
+        const mins = (w - b + 1440) % 1440;
+        if (mins >= 60 && mins <= 16 * 60) e.minutes = mins;
+      }
+      // "slept 8", "slept like 6.5"
+      const bare = !e.minutes ? chunk.match(/\bslept\s+(?:like\s+|about\s+|around\s+|only\s+)?(\d{1,2}(?:\.\d+)?)\b(?!\s*(?::|am|pm|to|until|-))/i) : null;
+      if (bare && +bare[1] >= 1 && +bare[1] <= 14) e.minutes = Math.round(+bare[1] * 60);
       if (/\b(great|amazing|deep|solid|good|well|rested)\b/i.test(chunk)) e.mood = /\b(great|amazing|deep)\b/i.test(chunk) ? 5 : 4;
       else if (/\b(bad|rough|terrible|awful|crap|poorly|restless|barely|trash)\b/i.test(chunk)) e.mood = 2;
     }

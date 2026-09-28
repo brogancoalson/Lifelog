@@ -44,9 +44,9 @@ export const AWARD_ORDER: AwardArea[] = ['service', 'personal', 'fitness', 'expe
 export const MOOD_LABELS = ['', 'Rough', 'Low', 'Okay', 'Good', 'Great'];
 
 export function isCategory(v: unknown): v is Category {
-  return typeof v === 'string' && v in CATEGORIES;
+  return typeof v === 'string' && Object.prototype.hasOwnProperty.call(CATEGORIES, v);
 }
 
 export function isAwardArea(v: unknown): v is AwardArea {
-  return typeof v === 'string' && v in AWARD_AREAS;
+  return typeof v === 'string' && Object.prototype.hasOwnProperty.call(AWARD_AREAS, v);
 }

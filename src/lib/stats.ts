@@ -1,5 +1,5 @@
 import type { AwardArea, Entry, Goal } from '../types';
-import { monthStart, weekStart } from './dates';
+import { monthStart, toDay, weekStart } from './dates';
 
 export interface DaySummary {
   waterOz: number;
@@ -23,9 +23,19 @@ export const toOz = (amount = 0, unit = '') => {
   if (u === 'l' || u.startsWith('liter') || u.startsWith('litre')) return amount * 33.8;
   if (u === 'ml') return amount / 29.57;
   if (u.startsWith('bottle')) return amount * 16.9;
+  if (u.startsWith('glass')) return amount * 8;
+  if (u.startsWith('can') || u.startsWith('mug')) return amount * 12;
   if (u.startsWith('gal')) return amount * 128;
   return amount; // assume oz
 };
+
+/** oz back into a goal's unit ("3 L a day" goal). Unknown units stay in oz. */
+export const fromOz = (oz: number, unit = '') => {
+  const one = toOz(1, unit);
+  return one && one !== 1 ? oz / one : oz;
+};
+
+const VOLUME_UNIT = /^(oz|ounces?|cups?|l|liters?|litres?|ml|bottles?|glass(es)?|gal(lons?)?|cans?|mugs?)$/i;
 
 export function isWater(e: Entry) {
   return e.category === 'drink' && (e.kind === 'water' || /\bwater\b/i.test(e.text));
@@ -91,7 +101,8 @@ export function periodStart(period: Goal['period'], today: string): string | nul
 export function goalProgress(goal: Goal, entries: Entry[], today: string): number {
   if (goal.field === 'manual') return goal.manualProgress ?? 0;
   const start = periodStart(goal.period, today);
-  const since = goal.period === 'all' ? goal.createdAt.slice(0, 10) : start;
+  // createdAt is stored in UTC; the goal starts on the local day it was made
+  const since = goal.period === 'all' ? (Number.isNaN(Date.parse(goal.createdAt)) ? goal.createdAt.slice(0, 10) : toDay(new Date(goal.createdAt))) : start;
   let total = 0;
   for (const e of entries) {
     if (since && e.date < since) continue;
@@ -108,7 +119,8 @@ export function goalProgress(goal: Goal, entries: Entry[], today: string): numbe
         total += e.minutes ?? 0;
         break;
       case 'amount':
-        total += goal.kind === 'water' || goal.unit === 'oz' ? toOz(e.amount ?? 0, e.unit ?? 'oz') : e.amount ?? 0;
+        // drinks are logged in oz, bottles, cups...; count them in the goal's own unit
+        total += goal.kind === 'water' || VOLUME_UNIT.test(goal.unit.trim()) ? fromOz(toOz(e.amount ?? 0, e.unit ?? 'oz'), VOLUME_UNIT.test(goal.unit.trim()) ? goal.unit.trim() : 'oz') : e.amount ?? 0;
         break;
       case 'moneyIn':
         total += Math.max(0, e.money ?? 0);

@@ -273,7 +273,7 @@ export async function askMode(data: AppData): Promise<AskMode> {
 export async function ask(question: string, history: ChatMessage[], data: AppData, onStep?: (s: string) => void): Promise<string> {
   const mode = await askMode(data);
   const prior: Msg[] = history
-    .filter((m) => !m.undone)
+    .filter((m) => !m.undone && m.text.trim())
     .slice(-8)
     .map((m) => ({ role: m.role === 'me' ? 'user' : 'assistant', content: m.text }));
   // the API needs turns to alternate and start with the user

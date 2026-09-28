@@ -58,12 +58,17 @@ export async function callClaude(opts: {
   };
   // browsers need this header to call the API directly; the phone app doesn't care
   if (Platform.OS === 'web') headers['anthropic-dangerous-direct-browser-access'] = 'true';
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers,
-    body: JSON.stringify(body),
-    signal: opts.signal,
-  });
+  let res: Response;
+  try {
+    res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body),
+      signal: opts.signal,
+    });
+  } catch {
+    throw new ClaudeError('Couldn’t reach Claude. Check your internet connection and try again.', 0);
+  }
   if (!res.ok) {
     let detail = '';
     try {
@@ -74,13 +79,18 @@ export async function callClaude(opts: {
     }
     throw new ClaudeError(explain(res.status, detail), res.status);
   }
-  return res.json();
+  try {
+    return await res.json();
+  } catch {
+    throw new ClaudeError('Claude sent back something the app couldn’t read. Try again.', res.status);
+  }
 }
 
 function explain(status: number, detail: string): string {
   if (status === 401) return 'Claude rejected the API key. Check it in Settings.';
   if (status === 403) return 'This API key isn’t allowed to do that. Check its permissions in the Claude Console.';
   if (status === 429) return 'Too many requests right now. Wait a moment and try again.';
+  if (status === 413) return 'That was too much to send at once. Try fewer or smaller screenshots.';
   if (status === 400 && /credit|balance/i.test(detail)) return 'Your Claude API account is out of credit. Add credit in the Claude Console.';
   if (status >= 500) return 'Claude is having trouble right now. Try again in a minute.';
   return detail || `Claude returned an error (${status}).`;

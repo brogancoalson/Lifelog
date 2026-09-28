@@ -61,8 +61,9 @@ export function quickTrade(text: string, now = new Date()): Partial<Trade> {
     const loss = money[1] === '-' || /\b(lost|loss|down|red|stopped out|stop out)\b/.test(t);
     out.pnl = loss ? -v : v;
   }
-  const good = text.match(/\b(?:good|went well|did well)\s*[:\-]\s*([^.\n]+)/i);
-  const bad = text.match(/\b(?:bad|mistake|went wrong|should have|shouldn't have)\s*[:\-]?\s*([^.\n]+)/i);
+  const stop = '(?=[,;]?\\s*\\b(?:bad|mistakes?|went wrong|should(?:n\'t)? have|good|went well|did well)\\b|[.\\n]|$)';
+  const good = text.match(new RegExp(`\\b(?:good|went well|did well)\\s*[:\\-]\\s*([^.\\n]+?)${stop}`, 'i'));
+  const bad = text.match(new RegExp(`\\b(?:bad|mistakes?|went wrong|should have|shouldn't have)\\s*[:\\-]?\\s*([^.\\n]+?)${stop}`, 'i'));
   if (good) out.good = good[1].trim();
   if (bad) out.bad = bad[1].trim();
   if (/\byesterday\b/.test(t)) out.date = addDays(toDay(now), -1);
@@ -87,7 +88,9 @@ export async function journalMessage(
     normalizeTrade({ ...raw, id: uid(), images: images.map((i) => i.id), notes: raw.notes || text, source: 'chat' }, fallback) ?? undefined;
 
   if (data.settings.claudeKey) {
-    const prior: Msg[] = history.slice(-6).map((m) => ({ role: m.role === 'me' ? 'user' : 'assistant', content: m.text }));
+    const prior: Msg[] = history
+      .slice(-6)
+      .map((m) => ({ role: m.role === 'me' ? 'user' : 'assistant', content: m.text.trim() || (m.images?.length ? '(sent a screenshot)' : '(no text)') }) as Msg);
     while (prior.length && prior[0].role !== 'user') prior.shift();
     const content: ContentBlock[] = [
       ...images.map((i) => ({ type: 'image' as const, source: { type: 'base64' as const, media_type: 'image/jpeg', data: i.base64 } })),

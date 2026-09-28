@@ -61,7 +61,7 @@ export function SettingsScreen({ visible, onClose }: { visible: boolean; onClose
   }
 
   const num = (v: string, fallback: number) => {
-    const n = parseFloat(v);
+    const n = parseFloat(v.replace(/[$,\s]/g, ''));
     return Number.isFinite(n) && n >= 0 ? n : fallback;
   };
 
@@ -247,7 +247,7 @@ export function SettingsScreen({ visible, onClose }: { visible: boolean; onClose
                       daysPerWeek: num(daysPerWeek, pay.daysPerWeek),
                       periodDays: num(periodDays, pay.periodDays) || 14,
                     },
-                    freeStart: parseFloat(freeStart) || undefined,
+                    freeStart: parseFloat(freeStart.replace(/[$,\s]/g, '')) || undefined,
                   });
                   flash('Pay settings saved');
                 }}
@@ -291,7 +291,8 @@ export function SettingsScreen({ visible, onClose }: { visible: boolean; onClose
                 title={`Copy backup (${data.entries.length} entries)`}
                 onPress={async () => {
                   try {
-                    await Clipboard.setStringAsync(JSON.stringify(data));
+                    // the API key stays on this device: a backup pasted into Notes or a message shouldn't carry it
+                    await Clipboard.setStringAsync(JSON.stringify({ ...data, settings: { ...data.settings, claudeKey: undefined } }));
                     flash('Backup copied. Paste it into Notes or a file to keep it.');
                   } catch {
                     flash("Couldn't copy the backup.");

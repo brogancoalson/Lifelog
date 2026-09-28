@@ -129,7 +129,8 @@ export function normalizeTrade(raw: any, fallback: Partial<Trade> = {}): Trade |
   if (!raw || typeof raw !== 'object') return null;
   const notes = str(raw.notes, 4000) ?? '';
   const images = Array.isArray(raw.images) ? raw.images.map((i: any) => str(i, 200)).filter(Boolean) : [];
-  if (!notes && !images.length && raw.pnl === undefined) return null;
+  const hasDetail = ['pnl', 'entry', 'exit', 'contracts'].some((k) => num(raw[k]) !== undefined) || ['setup', 'good', 'bad', 'emotion', 'direction'].some((k) => str(raw[k], 1000));
+  if (!notes && !images.length && !hasDetail) return null;
   const time = typeof raw.time === 'string' && /^\d{1,2}:\d{2}$/.test(raw.time) ? raw.time.padStart(5, '0') : undefined;
   return {
     id: str(raw.id, 40) ?? uid(),
@@ -230,11 +231,31 @@ export function normalizeData(raw: any): AppData {
   };
 }
 
+/**
+ * Load the saved data. Never lets a read problem wipe the log:
+ * - storage can't be read at all -> throws, and the app won't save over it this session
+ * - saved text is damaged -> a copy is kept under another key before starting fresh
+ */
 export async function loadData(): Promise<AppData> {
+  let raw: string | null;
   try {
-    const raw = await AsyncStorage.getItem(KEY);
-    return raw ? normalizeData(JSON.parse(raw)) : emptyData();
+    raw = await AsyncStorage.getItem(KEY);
   } catch {
+    try {
+      raw = await AsyncStorage.getItem(KEY);
+    } catch {
+      throw new Error('STORAGE_UNREADABLE');
+    }
+  }
+  if (!raw) return emptyData();
+  try {
+    return normalizeData(JSON.parse(raw));
+  } catch {
+    try {
+      await AsyncStorage.setItem(`${KEY}:unreadable:${Date.now()}`, raw);
+    } catch {
+      throw new Error('STORAGE_UNREADABLE');
+    }
     return emptyData();
   }
 }

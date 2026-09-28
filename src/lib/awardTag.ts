@@ -7,18 +7,20 @@ import { AWARD_AREAS, AWARD_ORDER } from './categories';
  * "put it under service", "Personal development: read for an hour".
  */
 
-const AREA = '(community service|public service|personal development|physical fitness|volunteer|service|personal|fitness|physical|expedition|exploration)';
+const AREA = '(community service|public service|personal development|physical fitness|volunteer|service|personal|fitness|physical(?!\\s+(?:therapy|therapist|exam|education|ed)\\b)|expedition|exploration)';
 const PREFIX = '(?:my\\s+|the\\s+|our\\s+)?(?:congressional\\s+|award\\s+|medal\\s+|gold\\s+|congressional award\\s+)*';
-const SUFFIX = '(?:\\s+(?:hours?|development|category|area|section|time|stuff|side))?';
+const SUFFIX = '(?:\\s+(?:hours?|development|category|area|section|time|side))?(?!\\s+(?:goals?|journey|trainer|training|record|best|reasons?|life|space|stuff|items?|belongings)\\b)';
 const LEAD = '(?:(?:and|so|also)\\s+)?(?:that|this|it|which|those|these|both|all of (?:that|it|them)|all)?\\s*(?:should|will|can|would|is going to|gonna)?\\s*';
 
 // "towards personal", "under service", "into fitness"
 const DIRECTED = new RegExp(`\\b(?:towards?|under|into)\\s+${PREFIX}${AREA}${SUFFIX}\\b`, 'i');
 // "counts for service", "goes to personal", "put it as fitness", "log it under personal"
 const COUNTED = new RegExp(
-  `\\b(?:counts?|counting|counted|goes|going|go|went|put|putting|log|logging|add|adding|apply|applies|credit|file|mark)\\b(?:\\s+(?:it|this|that|them|those|these|toward|towards|for))?\\s+(?:for|as|to|towards?|under|in|into)\\s+${PREFIX}${AREA}${SUFFIX}\\b`,
+  `\\b(?:counts?|counting|counted|put|putting|log|logging|add|adding|apply|applies|credit|file|mark)\\b(?:\\s+(?:it|this|that|them|those|these|toward|towards|for))?\\s+(?:for|as|to|towards?|under|in|into)\\s+${PREFIX}${AREA}${SUFFIX}\\b`,
   'i',
 );
+// "that goes to personal development" (but not "went to service")
+const GOES_TO = new RegExp(`\\b(?:goes|go)\\s+to\\s+(?:my\\s+)?(?:congressional\\s+|award\\s+)*(personal development|personal|physical fitness|fitness|expedition|community service|service hours)\\b`, 'i');
 // phrases that only ever mean an award area
 const STRONG = /\b(community service|public service|personal development|physical fitness|service hours?|volunteer hours?|personal hours?|fitness hours?|expedition (?:hours?|prep|training|planning))\b/i;
 // "Personal: read for an hour"
@@ -35,7 +37,7 @@ function toArea(word: string): AwardArea {
 
 /** The area they named in this text, if any. */
 export function explicitAward(text: string): AwardArea | undefined {
-  const m = text.match(LABEL) ?? text.match(COUNTED) ?? text.match(DIRECTED) ?? text.match(STRONG);
+  const m = text.match(LABEL) ?? text.match(COUNTED) ?? text.match(GOES_TO) ?? text.match(DIRECTED) ?? text.match(STRONG);
   return m ? toArea(m[1]) : undefined;
 }
 
@@ -55,7 +57,7 @@ export function mentionsAward(text: string): boolean {
 }
 
 const TAG_CLAUSE = new RegExp(
-  `[,;]?\\s*${LEAD}(?:\\b(?:counts?|counting|counted|goes|going|go|went|put|putting|log|logging|add|adding|apply|applies|credit|file|mark)\\b(?:\\s+(?:it|this|that|them|those|these|toward|towards|for))?\\s+(?:for|as|to|towards?|under|in|into)|\\b(?:towards?|under|into))\\s+${PREFIX}${AREA}${SUFFIX}\\b`,
+  `[,;]?\\s*${LEAD}(?:\\b(?:counts?|counting|counted|put|putting|log|logging|add|adding|apply|applies|credit|file|mark)\\b(?:\\s+(?:it|this|that|them|those|these|toward|towards|for))?\\s+(?:for|as|to|towards?|under|in|into)|\\b(?:(?:goes|go|going|went)\\s+)?(?:towards?|under|into))\\s+${PREFIX}${AREA}${SUFFIX}\\b`,
   'gi',
 );
 const AWARD_CLAUSE = /[,;]?\s*(?:(?:and|so)\s+)?(?:that|this|it)?\s*(?:counts?|goes|is)?\s*(?:for|towards?|toward)\s+(?:my|the)\s+(?:congressional\s+)?(?:award|medal)(?:\s+hours?)?\b/gi;
@@ -65,9 +67,10 @@ export function stripAwardTag(text: string): string {
   return text
     .replace(LABEL, '')
     .replace(TAG_CLAUSE, ' ')
+    .replace(new RegExp(`[,;]?\\s*${LEAD}\\b(?:goes|go|going)\\s+to\\s+(?:my\\s+)?(?:congressional\\s+|award\\s+)*(?:personal development|personal|physical fitness|fitness|expedition|community service|service hours)${SUFFIX}\\b`, 'gi'), ' ')
     .replace(AWARD_CLAUSE, ' ')
     // "cleaned up the park for community service" -> "cleaned up the park"
-    .replace(/[,;]?\s+(?:for|as)\s+(?:my\s+)?(?:community service|public service|personal development|physical fitness)(?:\s+hours?)?\s*$/i, '')
+    .replace(/[,;]?\s+(?:for|as)\s+(?:my\s+)?(?:community service|public service|personal development|physical fitness)(?:\s+hours?)?\b/gi, '')
     .replace(/\s{2,}/g, ' ')
     .trim();
 }

@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type { AppData, Bucket, ChatMessage, Entry, Goal, Settings, Trade, Transfer } from '../types';
 import { uid } from './dates';
-import { matchBucket, starterBuckets } from './money';
+import { matchBucket, starterBuckets, FREE } from './money';
 import { emptyData, loadData, normalizeData, saveData } from './storage';
 
 export type ChatKey = 'chat' | 'askChat' | 'tradeChat';
@@ -36,27 +36,35 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [data, setData] = useState<AppData>(emptyData);
   const [ready, setReady] = useState(false);
   const [saveFailed, setSaveFailed] = useState(false);
+  // if the saved log couldn't be read, never save over it this session
+  const [blockSave, setBlockSave] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    loadData().then((d) => {
-      // first run with buckets: add the starter set once
-      if (!d.settings.bucketsSeeded && d.buckets.length === 0) {
-        d = { ...d, buckets: starterBuckets(), settings: { ...d.settings, bucketsSeeded: true } };
-      }
-      setData(d);
-      setReady(true);
-    });
+    loadData()
+      .then((d) => {
+        // first run with buckets: add the starter set once
+        if (!d.settings.bucketsSeeded && d.buckets.length === 0) {
+          d = { ...d, buckets: starterBuckets(), settings: { ...d.settings, bucketsSeeded: true } };
+        }
+        setData(d);
+        setReady(true);
+      })
+      .catch(() => {
+        setBlockSave(true);
+        setSaveFailed(true);
+        setReady(true);
+      });
   }, []);
 
   // Save shortly after any change (batched).
   useEffect(() => {
-    if (!ready) return;
+    if (!ready || blockSave) return;
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => {
       saveData(data).then((ok) => setSaveFailed(!ok));
     }, 300);
-  }, [data, ready]);
+  }, [data, ready, blockSave]);
 
   const addEntries = useCallback((entries: Entry[]) => {
     if (!entries.length) return;
@@ -125,7 +133,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       ...d,
       buckets: d.buckets.filter((b) => b.id !== id),
       entries: d.entries.map((e) => (e.bucketId === id ? { ...e, bucketId: undefined } : e)),
-      transfers: d.transfers.filter((t) => t.from !== id && t.to !== id),
+      // a move between this bucket and another one now comes from / goes to free money, so the other bucket keeps it
+      transfers: d.transfers
+        .map((t) => (t.from === id ? { ...t, from: FREE } : t.to === id ? { ...t, to: FREE } : t))
+        .filter((t) => t.from !== t.to),
     }));
   }, []);
 
@@ -162,7 +173,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const replaceAll = useCallback((raw: unknown) => {
     if (!raw || typeof raw !== 'object' || !Array.isArray((raw as any).entries)) return false;
-    setData(normalizeData(raw));
+    // backups leave out the Claude key, so keep this device's key
+    setData((d) => {
+      const next = normalizeData(raw);
+      return next.settings.claudeKey || !d.settings.claudeKey ? next : { ...next, settings: { ...next.settings, claudeKey: d.settings.claudeKey } };
+    });
     return true;
   }, []);
 

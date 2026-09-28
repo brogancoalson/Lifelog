@@ -45,11 +45,11 @@ const FOODS: Food[] = [
   { names: ['premier protein', 'premier shake'], per: n(160, 30, 5), def: 1, dish: true },
   { names: ['muscle milk'], per: n(160, 25, 9), def: 1, dish: true },
   { names: ['ghost energy', 'bang energy', 'c4 energy', 'alani nu', 'celsius', 'zero sugar monster', 'monster zero'], per: n(10, 0, 2), def: 1, dish: true },
-  { names: ['burrito bowl', 'chipotle bowl', 'poke bowl', 'rice bowl', 'bowl'], per: n(700, 40, 75), def: 1, dish: true },
+  { names: ['burrito bowl', 'chipotle bowl', 'poke bowl', 'rice bowl', 'chipotle', 'bowl'], per: n(700, 40, 75), def: 1, dish: true },
   { names: ['breakfast burrito'], per: n(600, 28, 50), def: 1, dish: true },
   { names: ['burrito'], per: n(800, 40, 90), def: 1, dish: true },
   { names: ['quesadilla'], per: n(700, 35, 50), def: 1, dish: true },
-  { names: ['chicken sandwich'], per: n(550, 30, 50), def: 1, dish: true },
+  { names: ['chick fil a', 'chick-fil-a', 'chickfila', 'chicken sandwich'], per: n(550, 30, 50), def: 1, dish: true },
   { names: ['pb&j', 'pbj', 'peanut butter and jelly', 'peanut butter sandwich'], per: n(380, 12, 45), def: 1, dish: true },
   { names: ['footlong'], per: n(700, 44, 90), def: 1, dish: true },
   { names: ['sandwich', 'sub', 'hoagie', 'panini', 'wrap'], per: n(450, 25, 50), def: 1, dish: true },
@@ -216,6 +216,12 @@ function burger(part: string): Nutrition {
  * Estimate nutrition for a food or drink description.
  * Returns null when nothing recognizable was found.
  */
+/** True when the text names a food or drink from the curated list ("chipotle bowl", "quest bar"). */
+export function isCuratedFood(text: string): boolean {
+  const s = ` ${text.toLowerCase()} `;
+  return FOODS.some((f) => f.names.some((nm) => new RegExp(`\\b${esc(nm)}\\b`).test(s)));
+}
+
 export function estimateNutrition(text: string): Nutrition | null {
   let s = ` ${text.toLowerCase().replace(/[’']/g, "'")} `;
   // keep compound dishes together before splitting
@@ -290,7 +296,10 @@ export function withEstimate<T extends { category: string; text: string; calorie
 ): T {
   if (e.category !== 'food' && e.category !== 'drink') return e;
   if (e.calories !== undefined || e.protein !== undefined || e.carbs !== undefined) return e;
+  // "lunch" alone says nothing about what was eaten, so don't make numbers up
+  if (/^\s*(breakfast|lunch|dinner|brunch|snack|a snack|meal|a meal|dessert|food|drink|drinks)\s*$/i.test(e.text)) return e;
   const est = estimateNutrition(sourceText ?? e.text) ?? (sourceText ? estimateNutrition(e.text) : null);
-  if (!est) return e;
+  // a number this big means the text was misread (gym numbers, prices), not a real meal
+  if (!est || est.calories > 5000) return e;
   return { ...e, ...est, nutritionEstimated: true };
 }

@@ -27,7 +27,7 @@ export function entryDetails(e: Entry): string {
   if (e.protein) parts.push(`${est}${e.protein}g protein`);
   if (e.carbs) parts.push(`${est}${e.carbs}g carbs`);
   if (e.calories) parts.push(`${est}${e.calories} cal`);
-  if (e.mood) parts.push(`Mood: ${MOOD_LABELS[e.mood]}`);
+  if (e.mood) parts.push(e.category === 'sleep' ? `Slept ${MOOD_LABELS[e.mood].toLowerCase()}` : `Mood: ${MOOD_LABELS[e.mood]}`);
   return parts.join(' · ');
 }
 
