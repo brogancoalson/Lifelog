@@ -4,6 +4,7 @@ import { EntryEditor } from '../components/EntryEditor';
 import { entryDetails } from '../components/EntryRow';
 import { Body, CategoryDot, Icon, IconButton, Title } from '../components/ui';
 import { detectSortMode, sortMessage, SortMode } from '../lib/aiParse';
+import { awardReply } from '../lib/awardTag';
 import { AWARD_AREAS, CATEGORIES } from '../lib/categories';
 import { prettyDay } from '../lib/dates';
 import { useStore } from '../lib/store';
@@ -113,6 +114,7 @@ export function LogScreen() {
       const days = new Set(result.entries.map((e) => e.date));
       const when = days.size === 1 ? ` for ${prettyDay([...days][0]).toLowerCase()}` : '';
       reply = `Logged ${result.entries.length} thing${result.entries.length > 1 ? 's' : ''}${when}. Tap one to fix it.`;
+      reply += awardReply(message, result.entries);
       if (result.fellBack) reply += ` (AI sorting didn't answer, so I used quick sort.)`;
     } else {
       reply = "I didn't find anything to log in that. Try something like “2 waters and a protein bar”.";

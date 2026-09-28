@@ -1,4 +1,5 @@
-import type { Category, Entry, Lift } from '../types';
+import type { AwardArea, Category, Entry, Lift } from '../types';
+import { explicitAward, isTagOnly, mentionsAward, stripAwardTag, taggable, tagCoversAll } from './awardTag';
 import { addDays, toDay, toTime, uid } from './dates';
 import { withEstimate } from './nutrition';
 
@@ -14,7 +15,7 @@ const RE = {
   moneyOut: /\b(spent|spend|bought|buy|paid|pay|cost|costs|purchase[d]?|bill|subscription|lost)\b/i,
   mood: /\b(felt|feel|feeling|mood|stressed|anxious|tired|exhausted|happy|sad|motivated|locked in|energized|grateful|blessed|down|burnt out|burned out|frustrated|peaceful|pumped)\b/i,
   workout:
-    /\b(bench(?:ed)?|squat(?:ted)?|deadlift(?:ed)?|dl|ohp|overhead press|press(?:ed)?|curl(?:ed)?|rows?|pull-?ups?|push-?ups?|dips|lift(?:ed)?|gym|work(?:ed)? ?out|leg day|chest day|back day|arm day|push day|pull day|ran|run|jog(?:ged)?|miles?|cardio|sprints?|hiit|swim|swam|bike|biked|cycling|stairmaster|incline walk)\b/i,
+    /\b(bench(?:ed)?|squat(?:ted)?|deadlift(?:ed)?|dl|ohp|overhead press|press(?:ed)?|curl(?:ed)?|rows?|pull-?ups?|push-?ups?|dips|lift(?:ed)?|gym|work(?:ed)? ?out|leg day|chest day|back day|arm day|push day|pull day|ran|run|jog(?:ged)?|miles?|cardio|sprints?|hiit|swim|swam|bike|biked|cycling|stairmaster|incline walk|hike|hiked|hiking|basketball|football|soccer|tennis|pickleball|volleyball|baseball|softball|hockey|wrestling|boxing|jiu ?jitsu|bjj|mma|climbing|bouldering|yoga|pilates|skated|skating|surfed|surfing)\b/i,
   business:
     /\b(meeting|client|clients|call with|orders?|sales?|posted|post|reel|video|edited|editing|shipped|invoice|emailed|website|store|shop|wix|unconquered|coverpoint|agency|lead|leads|pitched|outreach|traded|trading|trade|content|filmed|recorded|designed)\b/i,
   social: /\b(date|date night|girlfriend|gf|hung out|hangout|friends?|family|mom|dad|brother|sister|party|dinner with|lunch with|coffee with)\b/i,
@@ -37,6 +38,11 @@ const RE = {
 const WORD_NUM: Record<string, number> = { a: 1, an: 1, one: 1, two: 2, three: 3, four: 4, five: 5 };
 
 function minutesIn(s: string): number | undefined {
+  const andHalf = s.match(/\b(an?|one|\d+)\s+(?:and a half\s+(?:h|hr|hrs|hours?)|(?:h|hr|hrs|hours?)\s+and a half)\b/i);
+  if (andHalf) {
+    const n = /^(an?|one)$/i.test(andHalf[1]) ? 1 : parseInt(andHalf[1], 10);
+    return (n + 0.5) * 60;
+  }
   let total = 0;
   const h = s.match(RE.hours);
   const m = s.match(RE.mins);
@@ -109,6 +115,7 @@ function stripCommon(s: string): string {
   let t = ` ${s.trim()} `;
   t = t.replace(/[.!?]+(\s|$)/g, ' ');
   t = t.replace(/\b(today|yesterday|last night|this morning|this afternoon|this evening|tonight|earlier|just now)\b/gi, ' ');
+  t = t.replace(/\b(for\s+)?(about\s+|like\s+|around\s+)?(an?|one|\d+)\s+(and a half\s+(hours?|hrs?|h)|(hours?|hrs?|h)\s+and a half)\b/gi, ' ');
   t = t.replace(/\b(for\s+)?(about\s+|like\s+|around\s+)?(\d+(\.\d+)?|an?|half an?)\s*(h|hr|hrs|hour|hours|m|min|mins|minute|minutes)\b/gi, ' ');
   t = t.trim();
   // leading fillers and "I"
@@ -154,7 +161,7 @@ export function itemText(category: Category, chunk: string, e: Partial<Entry> = 
       else if (/\b(swam|swim|swimming)\b/i.test(t)) t = 'Swim';
       else if (/\b(biked|bike|cycling|rode)\b/i.test(t)) t = 'Bike ride';
       else {
-        t = t.replace(/^(did|hit|went to|went|worked out at|worked out|trained at|trained|lifted at|lifted|at)\s+/i, '');
+        t = t.replace(/^(did|hit|went on|went to|went|worked out at|worked out|trained at|trained|lifted at|lifted|at)\s+/i, '');
         t = t.replace(/^(the|a|an|my)\s+/i, '');
         t = t.replace(/\s*\d+(\.\d+)?\s*(mi|miles?)\b/gi, '').trim();
         if (!t) t = 'Workout';
@@ -211,6 +218,12 @@ export function quickParse(message: string, now: Date = new Date()): Entry[] {
     .map((c) => c.trim())
     .filter((c) => c.length > 1)
     // "32 oz of water and a coffee" -> two drinks
+    // "volunteered 2 hours and read for an hour" -> two things, each with its own time
+    .flatMap((c) => {
+      const halves = c.split(/\s+and\s+(?!a half)/i);
+      if (halves.length === 2 && halves.every((h) => minutesIn(h))) return halves;
+      return [c];
+    })
     .flatMap((c) => {
       if (classify(c) !== 'drink' || !/\band\b/i.test(c)) return [c];
       const parts = c.split(/\s+and\s+/i);
@@ -218,8 +231,24 @@ export function quickParse(message: string, now: Date = new Date()): Entry[] {
     });
 
   const out: Entry[] = [];
-  for (const chunk of chunks) {
-    const category = classify(chunk);
+  let pendingTag: AwardArea | undefined;
+  for (const raw of chunks) {
+    // "..., that goes towards personal development" tags the thing before it instead of becoming its own entry
+    if (isTagOnly(raw)) {
+      const area = explicitAward(raw);
+      if (area) {
+        const targets = tagCoversAll(raw) ? out.filter((x) => taggable(x.category)) : out.slice(-1);
+        if (targets.length) targets.forEach((x) => (x.awardArea = area));
+        else pendingTag = area;
+      }
+      continue;
+    }
+    const tag = explicitAward(raw) ?? pendingTag;
+    pendingTag = undefined;
+    const chunk = mentionsAward(raw) ? stripAwardTag(raw) || raw : raw;
+    let category = classify(chunk);
+    if (tag && !taggable(category)) category = 'activity';
+    if (tag && category === 'note') category = 'activity';
     const date = RE.yesterday.test(chunk) || globalYesterday ? addDays(today, -1) : today;
     const e: Entry = {
       id: uid(),
@@ -288,6 +317,8 @@ export function quickParse(message: string, now: Date = new Date()): Entry[] {
       if (RE.service.test(chunk)) e.awardArea = e.minutes ? 'service' : undefined;
       else if (RE.personal.test(chunk)) e.awardArea = e.minutes ? 'personal' : undefined;
     }
+    // what they said wins over the guess, even with no time given yet
+    if (tag) e.awardArea = tag;
     e.text = itemText(category, chunk, e);
     // "slept great, 8 hours" / "6.5 hrs of sleep, slept like crap" -> one sleep entry
     const last = out[out.length - 1];
@@ -301,7 +332,7 @@ export function quickParse(message: string, now: Date = new Date()): Entry[] {
     const prev = out[out.length - 1];
     if (prev && prev.category === 'workout' && category === 'workout' && !e.lifts && e.minutes && !prev.minutes && prev.date === e.date) {
       prev.minutes = e.minutes;
-      prev.awardArea = 'fitness';
+      prev.awardArea = prev.awardArea ?? e.awardArea ?? 'fitness';
       continue;
     }
     out.push(withEstimate(e, chunk));

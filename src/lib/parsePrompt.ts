@@ -31,9 +31,14 @@ Fields for each entry:
 - money: positive number for money earned, negative for money spent (USD)
 - mood: 1-5 if they described how they felt (1 rough, 3 okay, 5 great)
 - lifts: for workouts, list each exercise as {name, weight (lbs), reps, sets}. "225 for 5" = weight 225, reps 5.
-- awardArea: the Congressional Award area this counts toward, ONLY when there is a duration and it clearly fits:
-  service (unpaid volunteering or community service), personal (learning a skill, studying, a course, practicing),
-  fitness (workouts, sports, runs), expedition (planning or training for their expedition trip). One area per entry. Otherwise omit.
+- awardArea: the Congressional Award area this counts toward.
+  If they SAY where it goes ("that goes towards personal development", "counts for community service", "put it under
+  physical fitness", "Personal: read for an hour", "for my award service hours"), ALWAYS set that area on the entry it
+  refers to, even with no duration. That phrase is a tag, never its own entry, and never part of "text".
+  "both/all of those count toward X" tags every entry it refers to.
+  Otherwise, set it only when there is a duration and it clearly fits: service (unpaid volunteering or community service),
+  personal (learning a skill, studying, a course, practicing), fitness (workouts, sports, runs, hikes),
+  expedition (planning or training for their expedition trip). One area per entry. Otherwise omit.
 
 Never invent details they didn't say. If the message is a question or not something to log, return no entries.`;
 }

@@ -4,6 +4,7 @@ import { toDay, toTime } from './dates';
 import { callClaude, MODEL_FAST } from './claude';
 import { buildParsePrompt, ENTRY_JSON_SCHEMA } from './parsePrompt';
 import { quickParse } from './quickParse';
+import { awardAreasIn, mentionsAward, stripAwardTag, taggable, tagCoversAll } from './awardTag';
 import { withEstimate } from './nutrition';
 import { normalizeEntry } from './storage';
 
@@ -45,13 +46,26 @@ export interface SortResult {
   fellBack?: string; // reason AI sorting failed and quick sort was used
 }
 
+/**
+ * If they clearly named one Congressional Award area and the AI didn't tag anything,
+ * tag the entry it most likely meant. Also keeps "goes towards personal" out of entry names.
+ */
+function awardSafetyNet(message: string, entries: Entry[]): Entry[] {
+  for (const e of entries) if (mentionsAward(e.text)) e.text = stripAwardTag(e.text) || e.text;
+  const areas = awardAreasIn(message);
+  if (areas.length !== 1 || entries.some((e) => e.awardArea)) return entries;
+  const candidates = entries.filter((e) => taggable(e.category));
+  const targets = candidates.length === 1 || tagCoversAll(message) ? candidates : entries.length === 1 ? entries : [];
+  for (const e of targets) e.awardArea = areas[0];
+  return entries;
+}
+
 export async function sortMessage(message: string, settings: Settings): Promise<SortResult> {
   const now = new Date();
   const today = toDay(now);
   const time = toTime(now);
   const fallback: Partial<Entry> = { date: today, time, source: 'chat' };
-  const finish = (raw: any[]) =>
-    (raw.map((r) => normalizeEntry({ ...r, source: 'chat' }, fallback)).filter(Boolean) as Entry[]).map((e) => withEstimate(e));
+  const finish = (raw: any[]) => awardSafetyNet(message, (raw.map((r) => normalizeEntry({ ...r, source: 'chat' }, fallback)).filter(Boolean) as Entry[]).map((e) => withEstimate(e)));
 
   const mode = await detectSortMode(settings);
   try {

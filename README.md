@@ -11,7 +11,7 @@ Built with Expo (React Native), so the same code runs as an iPhone app (through 
 - **Money**: buckets (latte factor, groceries, gas, fun, insurance, or your own) with per-paycheck rules ($, %, or $/day). "I got paid" splits a paycheck in bucket order and shows what's left to spend freely. Spending auto-comes out of the matching bucket.
 - **Trade**: a trading journal chat with screenshots, plus trades with P&L, win rate, and good/bad notes.
 - **Ask**: questions and advice from everything logged ("how was my sleep this week?", "what should I eat to hit my protein?", "which muscle groups am I neglecting?"). Uses an optional "About you" note from Settings. Needs a Claude API key.
-- **Goals**: Congressional Award tracker and your own goals.
+- **Goals**: Congressional Award tracker and your own goals. In Log, say where something counts ("read for an hour, goes towards personal", "2 hours for community service", "put it under physical fitness") and the hours land in that area.
 - **Settings**: Claude API key, pay settings, backup and restore.
 
 Data is saved on the device. Screenshots are stored separately (app files on the phone, IndexedDB on the web).
