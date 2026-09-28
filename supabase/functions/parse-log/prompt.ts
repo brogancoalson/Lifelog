@@ -12,7 +12,10 @@ Fields for each entry:
   - social = time with people (dates, girlfriend, friends, family, church community)
   - money = any amount earned or spent
   - note = only if nothing else fits
-- text: a short clean description in their own words, like "Chicken and rice" or "Bench 225x5"
+- text: just the thing itself, never the sentence. Drop "I", "ate", "had", "drank", "spent", "felt", amounts, durations, and times.
+  "I ate a western burger and fries" -> "Western burger and fries". "I drank 32 oz of water" -> "Water".
+  "Spent $14 on gas" -> "Gas". "I felt locked in today" -> "Locked in". "Benched 225 for 5" -> "Bench press".
+  "Had a client call with a dentist" -> "Client call with a dentist"
 - date: YYYY-MM-DD. Resolve "yesterday", "last night", and weekday names relative to today. Default today.
 - time: HH:MM 24-hour, only if stated or clearly implied by a clock time
 - minutes: duration, if stated (convert hours to minutes)

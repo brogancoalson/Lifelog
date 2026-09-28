@@ -144,3 +144,14 @@ export function fmtMinutes(m: number): string {
   const rest = Math.round(m % 60);
   return rest ? `${h}h ${rest}m` : `${h}h`;
 }
+
+/** "32 oz", "1 drink", "2 bottles": singular when the amount is 1. */
+export function fmtAmount(amount: number, unit?: string): string {
+  const n = Math.round(amount * 10) / 10;
+  let u = unit ?? '';
+  if (n === 1) {
+    if (/^glasses$/i.test(u)) u = 'glass';
+    else if (/^(drinks|bottles|cups|cans|servings|miles)$/i.test(u)) u = u.slice(0, -1);
+  }
+  return `${n} ${u}`.trim();
+}

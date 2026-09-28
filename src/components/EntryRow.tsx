@@ -2,7 +2,7 @@ import React from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { AWARD_AREAS, CATEGORIES, MOOD_LABELS } from '../lib/categories';
 import { prettyTime } from '../lib/dates';
-import { fmtMinutes, fmtMoney } from '../lib/stats';
+import { fmtAmount, fmtMinutes, fmtMoney } from '../lib/stats';
 import { font, useTheme } from '../theme';
 import type { Entry } from '../types';
 import { CategoryDot, Icon } from './ui';
@@ -20,7 +20,7 @@ export function entryDetails(e: Entry): string {
         .join(', '),
     );
   }
-  if (e.amount !== undefined && !e.lifts?.length) parts.push(`${Math.round(e.amount * 10) / 10} ${e.unit ?? ''}`.trim());
+  if (e.amount !== undefined && !e.lifts?.length) parts.push(fmtAmount(e.amount, e.unit));
   if (e.kind && !e.text.toLowerCase().includes(e.kind)) parts.push(e.kind);
   if (e.minutes) parts.push(fmtMinutes(e.minutes));
   if (e.calories) parts.push(`${e.calories} cal`);

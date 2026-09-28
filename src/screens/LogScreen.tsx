@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { EntryEditor } from '../components/EntryEditor';
 import { entryDetails } from '../components/EntryRow';
 import { Body, CategoryDot, Icon, IconButton, Title } from '../components/ui';
@@ -76,6 +76,13 @@ export function LogScreen() {
   const [editing, setEditing] = useState<Entry | undefined>();
   const [adding, setAdding] = useState(false);
   const scroll = useRef<ScrollView>(null);
+  const input = useRef<TextInput>(null);
+  const [typing, setTyping] = useState(false);
+
+  const hideKeyboard = () => {
+    input.current?.blur();
+    Keyboard.dismiss();
+  };
 
   const settings = data.settings;
   useEffect(() => {
@@ -149,6 +156,7 @@ export function LogScreen() {
         onContentSizeChange={() => scroll.current?.scrollToEnd({ animated: true })}
         contentContainerStyle={{ padding: space.lg, gap: space.md, flexGrow: 1, justifyContent: data.chat.length ? 'flex-end' : 'flex-start' }}
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
       >
         {!data.chat.length ? (
           <View style={{ gap: space.md }}>
@@ -229,8 +237,20 @@ export function LogScreen() {
           backgroundColor: t.bg,
         }}
       >
-        <IconButton icon="add" label="Add by hand" onPress={() => setAdding(true)} />
+        {typing ? (
+          <IconButton
+            icon="chevron-down"
+            label="Hide keyboard"
+            onPress={hideKeyboard}
+            style={{ borderWidth: 1, borderColor: t.borderStrong, width: 42, height: 42 }}
+          />
+        ) : (
+          <IconButton icon="add" label="Add by hand" onPress={() => setAdding(true)} />
+        )}
         <TextInput
+          ref={input}
+          onFocus={() => setTyping(true)}
+          onBlur={() => setTyping(false)}
           value={text}
           onChangeText={setText}
           placeholder="What did you do?"

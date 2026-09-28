@@ -100,14 +100,88 @@ function drinkKind(s: string): string | undefined {
   return m ? m[1].toLowerCase() : undefined;
 }
 
-function clean(s: string): string {
-  let t = s
-    .trim()
-    .replace(/^(and|then|also|plus|i|i've|ive|just)\s+/i, '')
-    .replace(/\s+(today|yesterday|last night)$/i, '')
-    .replace(/[.!]+$/, '')
-    .trim();
-  return t.charAt(0).toUpperCase() + t.slice(1);
+const cap = (t: string) => (t ? t.charAt(0).toUpperCase() + t.slice(1) : t);
+
+/** Remove the parts of a sentence that aren't the thing itself: "I", times of day, durations. */
+function stripCommon(s: string): string {
+  let t = ` ${s.trim()} `;
+  t = t.replace(/[.!?]+(\s|$)/g, ' ');
+  t = t.replace(/\b(today|yesterday|last night|this morning|this afternoon|this evening|tonight|earlier|just now)\b/gi, ' ');
+  t = t.replace(/\b(for\s+)?(about\s+|like\s+|around\s+)?(\d+(\.\d+)?|an?|half an?)\s*(h|hr|hrs|hour|hours|m|min|mins|minute|minutes)\b/gi, ' ');
+  t = t.trim();
+  // leading fillers and "I"
+  for (let i = 0; i < 3; i++) {
+    t = t
+      .replace(/^(and|then|also|plus|so|just|finally|ok|okay)\s+/i, '')
+      .replace(/^(i|i've|ive|i'm|im|we|we've|me)\s+(just\s+|also\s+|finally\s+)?/i, '');
+  }
+  // dangling words left at the end ("at the gym for" -> "at the gym")
+  t = t.replace(/\s+(for|at|with|and|to)\s*$/i, '');
+  return t.replace(/\s{2,}/g, ' ').trim();
+}
+
+const stripArticle = (t: string) => t.replace(/^(a|an|some|the|my|a few|a couple of|couple)\s+/i, '');
+
+/** The name of the thing: "I ate a western burger and fries" -> "Western burger and fries". */
+export function itemText(category: Category, chunk: string, e: Partial<Entry> = {}): string {
+  let t = stripCommon(chunk);
+  switch (category) {
+    case 'food': {
+      t = t.replace(/^(ate|eat|eating|had|have|having|got|grabbed|made|cooked|finished|devoured|snacked on)\s+/i, '');
+      t = t.replace(/\s*\b(for|as)\s+(my\s+)?(breakfast|lunch|dinner|brunch|a snack|snack|dessert|a meal|pre-workout|post-workout)\b/gi, '');
+      t = stripArticle(t.trim());
+      if (!t) t = (chunk.match(/\b(breakfast|lunch|dinner|brunch|snack|dessert)\b/i)?.[1] ?? 'Meal');
+      break;
+    }
+    case 'drink': {
+      t = t.replace(/^(drank|drink|drinking|had|have|chugged|downed|finished|got)\s+/i, '');
+      t = t.replace(RE.volume, ' ').replace(RE.countDrink, (_m, _n, what: string) => ` ${what.replace(/s$/i, '')} `);
+      t = t.replace(/\b(\d+(\.\d+)?|a|an|one|two|three|four|five)?\s*(bottles?|glass(es)?|cups?|cans?|mugs?|shots?)\s+of\s+/gi, ' ');
+      t = t.replace(/^\s*of\s+/i, '');
+      t = stripArticle(t.replace(/\s{2,}/g, ' ').trim());
+      if (!t || /^\d/.test(t)) t = e.kind ?? 'Drink';
+      break;
+    }
+    case 'workout': {
+      if (e.lifts?.length) {
+        const names = [...new Set(e.lifts.map((l) => l.name))];
+        t = names.join(' + ');
+        break;
+      }
+      if (/\b(ran|run|running|jog|jogged|jogging)\b/i.test(t)) t = 'Run';
+      else if (/\b(swam|swim|swimming)\b/i.test(t)) t = 'Swim';
+      else if (/\b(biked|bike|cycling|rode)\b/i.test(t)) t = 'Bike ride';
+      else {
+        t = t.replace(/^(did|hit|went to|went|worked out at|worked out|trained at|trained|lifted at|lifted|at)\s+/i, '');
+        t = t.replace(/^(the|a|an|my)\s+/i, '');
+        t = t.replace(/\s*\d+(\.\d+)?\s*(mi|miles?)\b/gi, '').trim();
+        if (!t) t = 'Workout';
+      }
+      break;
+    }
+    case 'money': {
+      t = t.replace(RE.moneyAmt, ' ');
+      t = t.replace(/^(spent|spend|paid|pay|bought|buy|made|make|earned|got paid|got|sold|received|lost|won|picked up)\s+/i, '');
+      t = t.replace(/^\s*(on|for|from|at|with|in|off|of)\s+/i, '');
+      t = t.replace(/\s+(on|for|from|at|with|in)\s*$/i, '');
+      t = stripArticle(t.replace(/\s{2,}/g, ' ').trim());
+      if (!t) t = (e.money ?? 0) >= 0 ? 'Income' : 'Expense';
+      break;
+    }
+    case 'mood': {
+      t = t.replace(/^(felt|feel|feeling|was|am|been|i'm|im)\s+/i, '');
+      t = t.replace(/^(pretty|really|so|very|super|kinda|kind of|a bit|a little)\s+/i, '');
+      break;
+    }
+    case 'business':
+    case 'social': {
+      t = t.replace(/^(had|did|went on|went to|went|got)\s+(a|an|my)?\s*/i, '');
+      break;
+    }
+    default:
+      break;
+  }
+  return cap(t.replace(/\s{2,}/g, ' ').trim()) || cap(chunk.trim());
 }
 
 function classify(s: string): Category {
@@ -130,7 +204,13 @@ export function quickParse(message: string, now: Date = new Date()): Entry[] {
   const chunks = message
     .split(/\n|;|,|\.\s+|\bthen\b/i)
     .map((c) => c.trim())
-    .filter((c) => c.length > 1);
+    .filter((c) => c.length > 1)
+    // "32 oz of water and a coffee" -> two drinks
+    .flatMap((c) => {
+      if (classify(c) !== 'drink' || !/\band\b/i.test(c)) return [c];
+      const parts = c.split(/\s+and\s+/i);
+      return parts.every((p) => RE.drink.test(p)) ? parts : [c];
+    });
 
   const out: Entry[] = [];
   for (const chunk of chunks) {
@@ -142,7 +222,7 @@ export function quickParse(message: string, now: Date = new Date()): Entry[] {
       date,
       time: date === today ? toTime(now) : undefined,
       category,
-      text: clean(chunk),
+      text: chunk.trim(),
       source: 'chat',
     };
     const minutes = minutesIn(chunk);
@@ -185,6 +265,7 @@ export function quickParse(message: string, now: Date = new Date()): Entry[] {
       if (RE.service.test(chunk)) e.awardArea = e.minutes ? 'service' : undefined;
       else if (RE.personal.test(chunk)) e.awardArea = e.minutes ? 'personal' : undefined;
     }
+    e.text = itemText(category, chunk, e);
     // "benched 225x5, 1 hr at the gym" -> one workout with a duration, not two entries
     const prev = out[out.length - 1];
     if (prev && prev.category === 'workout' && category === 'workout' && !e.lifts && e.minutes && !prev.minutes && prev.date === e.date) {

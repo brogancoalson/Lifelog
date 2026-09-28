@@ -2,7 +2,7 @@ import React from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { AWARD_AREAS, CATEGORIES, MOOD_LABELS } from '../lib/categories';
 import { prettyTime } from '../lib/dates';
-import { fmtMinutes, fmtMoney } from '../lib/stats';
+import { fmtAmount, fmtMinutes, fmtMoney } from '../lib/stats';
 import { font, useTheme } from '../theme';
 import type { Entry } from '../types';
 import { CategoryDot, Icon } from './ui';
@@ -26,7 +26,7 @@ export function EntryDetail({ entry, onPress }: { entry: Entry; onPress: () => v
     ? ''
     : logged.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
   const rows: { k: string; v: string; color?: string }[] = [];
-  if (entry.amount !== undefined) rows.push({ k: 'Amount', v: `${Math.round(entry.amount * 10) / 10} ${entry.unit ?? ''}`.trim() });
+  if (entry.amount !== undefined) rows.push({ k: 'Amount', v: fmtAmount(entry.amount, entry.unit) });
   if (entry.kind) rows.push({ k: 'Type', v: entry.kind });
   if (entry.minutes) rows.push({ k: 'Duration', v: fmtMinutes(entry.minutes) });
   if (entry.calories) rows.push({ k: 'Calories', v: String(entry.calories) });
