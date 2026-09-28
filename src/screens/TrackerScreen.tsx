@@ -82,12 +82,13 @@ const DEFAULT_CATEGORY: Record<TrackerKey, Category> = {
   water: 'drink',
   food: 'food',
   workout: 'workout',
+  sleep: 'sleep',
   money: 'money',
   mood: 'mood',
   award: 'activity',
 };
 
-export function TrackerScreen({ tracker, onBack }: { tracker: TrackerKey; onBack: () => void }) {
+export function TrackerScreen({ tracker, onBack, top }: { tracker: TrackerKey; onBack?: () => void; top?: React.ReactNode }) {
   const t = useTheme();
   const insets = useInsets();
   const { data } = useStore();
@@ -245,6 +246,24 @@ export function TrackerScreen({ tracker, onBack }: { tracker: TrackerKey; onBack
     ) : null;
   }
 
+  if (tracker === 'sleep') {
+    format = (v) => `${fmtHours(v)} hrs`;
+    const nights = perDay.length;
+    const hours = perDay.map((d) => d.value);
+    const avg = nights ? hours.reduce((a, b) => a + b, 0) / nights : 0;
+    const quality = list.filter((e) => e.mood).map((e) => e.mood!);
+    const qAvg = quality.length ? quality.reduce((a, b) => a + b, 0) / quality.length : 0;
+    const naps = list.filter((e) => /nap/i.test(e.text)).length;
+    stats = [
+      { label: 'Average', value: nights ? `${fmtHours(avg)} hrs` : '—', sub: nights ? `over ${nights} night${nights > 1 ? 's' : ''}` : 'log “slept 7 hours”' },
+      { label: 'Nights logged', value: `${nights}/${days}` },
+      { label: 'Best night', value: best ? `${fmtHours(best.value)} hrs` : '—', sub: best ? prettyDay(best.day, today) : undefined },
+      { label: 'Worst night', value: worst ? `${fmtHours(worst.value)} hrs` : '—', sub: worst ? prettyDay(worst.day, today) : undefined },
+      { label: '7+ hours', value: `${hours.filter((h) => h >= 7).length} night${hours.filter((h) => h >= 7).length === 1 ? '' : 's'}` },
+      { label: 'Quality', value: qAvg ? MOOD_LABELS[Math.round(qAvg)] : '—', sub: naps ? `${naps} nap${naps > 1 ? 's' : ''}` : quality.length ? `${quality.length} rated` : 'say “slept great” or “slept rough”' },
+    ];
+  }
+
   if (tracker === 'mood') {
     format = (v) => `${v} · ${MOOD_LABELS[Math.round(v)] ?? ''}`;
     const moods = list.map((e) => e.mood!);
@@ -321,13 +340,15 @@ export function TrackerScreen({ tracker, onBack }: { tracker: TrackerKey; onBack
   return (
     <View style={{ flex: 1 }}>
       <ScrollView contentContainerStyle={{ padding: space.lg, paddingTop: insets.top + space.sm, gap: space.lg, paddingBottom: 110 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginLeft: -10 }}>
-          <IconButton icon="chevron-back" label="Back to Today" onPress={onBack} size={26} />
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginLeft: onBack ? -10 : 0 }}>
+          {onBack ? <IconButton icon="chevron-back" label="Back to Today" onPress={onBack} size={26} /> : null}
           <Icon name={meta.icon} size={22} color={color} />
           <Text style={{ color: t.text, fontSize: 40, lineHeight: 42, fontFamily: font.display, letterSpacing: 1, textTransform: 'uppercase', marginLeft: 6 }}>
             {meta.title}
           </Text>
         </View>
+
+        {top}
 
         <View style={{ gap: 8 }}>
           <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -375,24 +396,27 @@ export function TrackerScreen({ tracker, onBack }: { tracker: TrackerKey; onBack
         </View>
       </ScrollView>
 
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`Add ${meta.title.toLowerCase()} entry`}
-        onPress={() => setAdding(true)}
-        style={({ pressed }) => ({
-          position: 'absolute',
-          right: space.lg,
-          bottom: space.lg + insets.bottom,
-          width: 56,
-          height: 56,
-          backgroundColor: t.accent,
-          alignItems: 'center',
-          justifyContent: 'center',
-          opacity: pressed ? 0.8 : 1,
-        })}
-      >
-        <Icon name="add" size={30} color={t.accentText} />
-      </Pressable>
+      {/* the Money tab has its own buttons */}
+      {top ? null : (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Add ${meta.title.toLowerCase()} entry`}
+          onPress={() => setAdding(true)}
+          style={({ pressed }) => ({
+            position: 'absolute',
+            right: space.lg,
+            bottom: space.lg + insets.bottom,
+            width: 56,
+            height: 56,
+            backgroundColor: t.accent,
+            alignItems: 'center',
+            justifyContent: 'center',
+            opacity: pressed ? 0.8 : 1,
+          })}
+        >
+          <Icon name="add" size={30} color={t.accentText} />
+        </Pressable>
+      )}
 
       <EntryEditor visible={!!editing} entry={editing} onClose={() => setEditing(undefined)} />
       <EntryEditor

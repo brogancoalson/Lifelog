@@ -5,6 +5,8 @@
  * person didn't give their own numbers.
  */
 
+import { estimateFromDb, tokenize } from './foodDb';
+
 export interface Nutrition {
   calories: number;
   protein: number; // g
@@ -31,6 +33,18 @@ const n = (calories: number, protein: number, carbs: number): Nutrition => ({ ca
 // Order matters: more specific names first.
 const FOODS: Food[] = [
   // --- dishes (one match per part) ---
+  // common gym / snack brands (per item)
+  { names: ['oreos', 'oreo cookies', 'oreo'], per: n(53, 0.5, 8.3), def: 3, dish: true },
+  { names: ['quest bar', 'quest protein bar'], per: n(190, 21, 22), def: 1, dish: true },
+  { names: ['built bar'], per: n(130, 17, 16), def: 1, dish: true },
+  { names: ['one bar'], per: n(220, 20, 23), def: 1, dish: true },
+  { names: ['rxbar', 'rx bar'], per: n(210, 12, 23), def: 1, dish: true },
+  { names: ['kind bar'], per: n(200, 6, 16), def: 1, dish: true },
+  { names: ['clif bar', 'cliff bar'], per: n(250, 10, 44), def: 1, dish: true },
+  { names: ['fairlife', 'fair life', 'core power'], per: n(150, 30, 4), def: 1, dish: true },
+  { names: ['premier protein', 'premier shake'], per: n(160, 30, 5), def: 1, dish: true },
+  { names: ['muscle milk'], per: n(160, 25, 9), def: 1, dish: true },
+  { names: ['ghost energy', 'bang energy', 'c4 energy', 'alani nu', 'celsius', 'zero sugar monster', 'monster zero'], per: n(10, 0, 2), def: 1, dish: true },
   { names: ['burrito bowl', 'chipotle bowl', 'poke bowl', 'rice bowl', 'bowl'], per: n(700, 40, 75), def: 1, dish: true },
   { names: ['breakfast burrito'], per: n(600, 28, 50), def: 1, dish: true },
   { names: ['burrito'], per: n(800, 40, 90), def: 1, dish: true },
@@ -220,12 +234,17 @@ export function estimateNutrition(text: string): Nutrition | null {
     .filter(Boolean);
 
   let total: Nutrition | null = null;
-  for (const raw of parts) {
+  for (const raw0 of parts) {
+    const raw = raw0.replace(/\b(for|as)\s+(my\s+)?(breakfast|lunch|dinner|brunch|a snack|snack|dessert|pre-workout|post-workout)\b/g, ' ').trim();
     let part = ` ${raw} `;
     let partTotal: Nutrition | null = null;
+    let curatedDish = false;
+    const consumed: string[] = [];
     for (const food of FOODS) {
       const name = food.names.find((nm) => new RegExp(`\\b${esc(nm)}\\b`).test(part));
       if (!name) continue;
+      consumed.push(name);
+      if (food.dish || food.names.includes('burger')) curatedDish = true;
       let v: Nutrition;
       if (food.names.includes('burger')) {
         v = burger(part);
@@ -242,6 +261,15 @@ export function estimateNutrition(text: string): Nutrition | null {
       if (food.dish) break;
       // don't match the same words twice ("egg whites" then "egg")
       part = part.replace(new RegExp(`\\b${esc(name)}\\b`), ' ');
+    }
+    // The USDA table (52k foods) catches everything the short list doesn't,
+    // and wins when it matches more of the description ("chicken tikka masala", "big mac").
+    const meaningful = tokenize(raw).length;
+    const consumedWords = tokenize(consumed.join(' ')).length;
+    const db = meaningful ? estimateFromDb(raw) : null;
+    const zeroCurated = partTotal && partTotal.calories === 0 && partTotal.protein === 0 && partTotal.carbs === 0;
+    if (db && !curatedDish && (!partTotal || (db.coverage >= 0.99 && db.matched > consumedWords)) && !zeroCurated) {
+      partTotal = { calories: db.calories, protein: db.protein, carbs: db.carbs };
     }
     if (partTotal) total = total ? add(total, partTotal) : partTotal;
   }

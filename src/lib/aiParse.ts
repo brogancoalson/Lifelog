@@ -1,12 +1,13 @@
 import { Platform } from 'react-native';
 import type { Entry, Settings } from '../types';
 import { toDay, toTime } from './dates';
+import { callClaude, MODEL_FAST } from './claude';
 import { buildParsePrompt, ENTRY_JSON_SCHEMA } from './parsePrompt';
 import { quickParse } from './quickParse';
 import { withEstimate } from './nutrition';
 import { normalizeEntry } from './storage';
 
-export type SortMode = 'ai-server' | 'ai-preview' | 'quick';
+export type SortMode = 'ai-key' | 'ai-server' | 'ai-preview' | 'quick';
 
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -14,7 +15,7 @@ const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Frida
  * The web preview published inside Claude can ask Claude directly (no API key).
  * This is only present in that preview, never in the phone app.
  */
-async function getPreviewSampler(): Promise<any | null> {
+export async function getPreviewSampler(): Promise<any | null> {
   if (Platform.OS !== 'web' || typeof window === 'undefined') return null;
   const c = (window as any).claude;
   if (!c || typeof c.use !== 'function') return null;
@@ -26,12 +27,13 @@ async function getPreviewSampler(): Promise<any | null> {
 }
 
 let samplerPromise: Promise<any | null> | null = null;
-function sampler() {
+export function sampler() {
   if (!samplerPromise) samplerPromise = getPreviewSampler();
   return samplerPromise;
 }
 
 export async function detectSortMode(settings: Settings): Promise<SortMode> {
+  if (settings.claudeKey) return 'ai-key';
   if (settings.aiEndpoint && settings.aiKey) return 'ai-server';
   if (await sampler()) return 'ai-preview';
   return 'quick';
@@ -53,6 +55,19 @@ export async function sortMessage(message: string, settings: Settings): Promise<
 
   const mode = await detectSortMode(settings);
   try {
+    if (mode === 'ai-key') {
+      const res = await callClaude({
+        key: settings.claudeKey!,
+        model: MODEL_FAST,
+        system: buildParsePrompt(today, WEEKDAYS[now.getDay()], time),
+        messages: [{ role: 'user', content: message }],
+        tools: [{ name: 'save_entries', description: 'Save the structured life-log entries found in the message.', input_schema: ENTRY_JSON_SCHEMA as any }],
+        toolChoice: { type: 'tool', name: 'save_entries' },
+        maxTokens: 2000,
+      });
+      const use = res.content.find((c) => c.type === 'tool_use') as any;
+      return { entries: finish(Array.isArray(use?.input?.entries) ? use.input.entries : []), mode };
+    }
     if (mode === 'ai-server') {
       const res = await fetch(settings.aiEndpoint!, {
         method: 'POST',

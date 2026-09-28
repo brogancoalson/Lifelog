@@ -7,6 +7,7 @@ export type Category =
   | 'social'
   | 'mood'
   | 'money'
+  | 'sleep'
   | 'note';
 
 export type AwardArea = 'service' | 'personal' | 'fitness' | 'expedition';
@@ -38,7 +39,66 @@ export interface Entry {
   lifts?: Lift[];
   awardArea?: AwardArea; // counts toward Congressional Award
   validator?: string; // who can verify the award hours
+  bucketId?: string; // money spent out of this bucket
+  allocations?: Allocation[]; // income split into buckets
+  incomeKind?: 'paycheck' | 'other';
   source: 'chat' | 'manual' | 'health';
+}
+
+export interface Allocation {
+  bucketId: string;
+  amount: number;
+}
+
+/** How much a bucket gets from each paycheck. */
+export type BucketRule = 'fixed' | 'percent' | 'daily';
+
+export interface Bucket {
+  id: string;
+  name: string;
+  rule: BucketRule;
+  value: number; // $ per paycheck, % of paycheck, or $ per day
+  kind: 'spend' | 'save'; // save = money put away (retirement, savings)
+  keywords?: string[]; // words that auto-assign spending ("gas", "shell")
+  start?: number; // money already in it when created
+  createdAt: string;
+}
+
+export interface Transfer {
+  id: string;
+  date: string;
+  from: string; // bucket id or 'free'
+  to: string; // bucket id or 'free'
+  amount: number;
+  note?: string;
+  createdAt: string;
+}
+
+export interface Trade {
+  id: string;
+  date: string;
+  time?: string;
+  symbol: string;
+  direction?: 'long' | 'short';
+  contracts?: number;
+  entry?: number;
+  exit?: number;
+  pnl?: number; // dollars, + win / - loss
+  setup?: string;
+  good?: string;
+  bad?: string;
+  emotion?: string;
+  notes: string;
+  images: string[]; // stored image ids
+  createdAt: string;
+  source: 'chat' | 'manual';
+}
+
+export interface PaySettings {
+  hourly: number;
+  hoursPerDay: number;
+  daysPerWeek: number;
+  periodDays: number; // paid every N days
 }
 
 export type GoalPeriod = 'day' | 'week' | 'month' | 'all';
@@ -77,7 +137,11 @@ export interface AwardSettings {
 export interface Settings {
   aiEndpoint?: string; // Supabase function URL
   aiKey?: string; // Supabase anon key
+  claudeKey?: string; // Anthropic API key, kept on this device only
   award: AwardSettings;
+  pay: PaySettings;
+  freeStart?: number; // free money on hand when buckets were set up
+  bucketsSeeded?: boolean;
 }
 
 export interface ChatMessage {
@@ -85,6 +149,8 @@ export interface ChatMessage {
   role: 'me' | 'app';
   text: string;
   entryIds?: string[];
+  tradeIds?: string[];
+  images?: string[];
   createdAt: string;
   undone?: boolean;
 }
@@ -95,4 +161,9 @@ export interface AppData {
   goals: Goal[];
   settings: Settings;
   chat: ChatMessage[];
+  buckets: Bucket[];
+  transfers: Transfer[];
+  trades: Trade[];
+  askChat: ChatMessage[];
+  tradeChat: ChatMessage[];
 }

@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { ScrollView, SectionList, Text, View } from 'react-native';
 import { EntryEditor } from '../components/EntryEditor';
 import { EntryRow } from '../components/EntryRow';
-import { Chip, Empty, Field, Title } from '../components/ui';
+import { Chip, Empty, Field, IconButton, Title } from '../components/ui';
 import { CATEGORIES, CATEGORY_ORDER } from '../lib/categories';
 import { prettyDay, toDay } from '../lib/dates';
 import { fmtMoney, summarize } from '../lib/stats';
@@ -12,7 +12,7 @@ import type { Category, Entry } from '../types';
 
 type Filter = 'all' | 'award' | Category;
 
-export function HistoryScreen() {
+export function HistoryScreen({ onBack }: { onBack?: () => void }) {
   const t = useTheme();
   const insets = useInsets();
   const { data } = useStore();
@@ -47,7 +47,10 @@ export function HistoryScreen() {
   return (
     <View style={{ flex: 1 }}>
       <View style={{ paddingTop: insets.top + space.md, paddingHorizontal: space.lg, gap: space.md }}>
-        <Title>History</Title>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: onBack ? -10 : 0 }}>
+          {onBack ? <IconButton icon="chevron-back" label="Back to Today" onPress={onBack} size={26} /> : null}
+          <Title>History</Title>
+        </View>
         <Field value={query} onChangeText={setQuery} placeholder="Search everything you've logged" autoCapitalize="none" clearButtonMode="while-editing" />
       </View>
       <View>

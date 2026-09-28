@@ -8,6 +8,7 @@ import { addDays, prettyDay, toDay } from '../lib/dates';
 import { fmtHours, fmtMinutes, fmtMoney, summarize } from '../lib/stats';
 import { useStore } from '../lib/store';
 import { font, radius, space, useInsets, useTheme } from '../theme';
+import { moneyState } from '../lib/money';
 import type { TrackerKey } from '../lib/trackers';
 import type { Entry } from '../types';
 
@@ -58,10 +59,14 @@ export function TodayScreen({
   onOpenSettings,
   onGoLog,
   onOpenTracker,
+  onOpenTab,
+  onOpenHistory,
 }: {
   onOpenSettings: () => void;
   onGoLog: () => void;
   onOpenTracker: (key: TrackerKey) => void;
+  onOpenTab: (tab: 'money' | 'trade') => void;
+  onOpenHistory: () => void;
 }) {
   const t = useTheme();
   const insets = useInsets();
@@ -79,6 +84,12 @@ export function TodayScreen({
     [data.entries, day],
   );
   const s = useMemo(() => summarize(entries), [entries]);
+  const sleepEntries = entries.filter((e) => e.category === 'sleep');
+  const sleepMin = sleepEntries.reduce((a, e) => a + (e.minutes ?? 0), 0);
+  const sleepQ = sleepEntries.find((e) => e.mood)?.mood ?? 0;
+  const dayTrades = data.trades.filter((tr) => tr.date === day);
+  const dayPnl = dayTrades.reduce((a, tr) => a + (tr.pnl ?? 0), 0);
+  const free = useMemo(() => moneyState(data).free, [data]);
   const net = s.moneyIn - s.moneyOut;
 
   return (
@@ -92,7 +103,10 @@ export function TodayScreen({
             </Pressable>
             <IconButton icon="chevron-forward" label="Next day" onPress={() => setDay(addDays(day, 1))} />
           </View>
-          <IconButton icon="settings-outline" label="Settings" onPress={onOpenSettings} />
+          <View style={{ flexDirection: 'row', marginRight: -8 }}>
+            <IconButton icon="time-outline" label="History" onPress={onOpenHistory} />
+            <IconButton icon="settings-outline" label="Settings" onPress={onOpenSettings} />
+          </View>
         </View>
 
         {saveFailed ? (
@@ -113,7 +127,15 @@ export function TodayScreen({
             sub={s.activeMinutes ? `${fmtMinutes(s.activeMinutes)} training` : undefined}
           />
           <Stat
-            onPress={() => onOpenTracker('money')}
+            onPress={() => onOpenTracker('sleep')}
+            icon="moon"
+            color={CATEGORIES.sleep.color}
+            label="Sleep"
+            value={sleepMin ? `${fmtHours(sleepMin / 60)} hrs` : '—'}
+            sub={sleepQ ? `Slept ${MOOD_LABELS[sleepQ].toLowerCase()}` : undefined}
+          />
+          <Stat
+            onPress={() => onOpenTab('money')}
             icon="cash"
             color={CATEGORIES.money.color}
             label="Money"
@@ -122,6 +144,15 @@ export function TodayScreen({
           />
           <Stat onPress={() => onOpenTracker('mood')} icon="happy" color={CATEGORIES.mood.color} label="Mood" value={s.mood ? MOOD_LABELS[Math.round(s.mood)] : '—'} />
           <Stat onPress={() => onOpenTracker('award')} icon="medal" color={t.accent} label="Award hrs" value={fmtHours(s.awardMinutes / 60)} sub={s.business ? `${s.business} business item${s.business > 1 ? 's' : ''}` : undefined} />
+          <Stat
+            onPress={() => onOpenTab('trade')}
+            icon="trending-up"
+            color={t.textDim}
+            label="Trading"
+            value={dayTrades.length ? `${dayPnl < 0 ? '−' : '+'}${fmtMoney(dayPnl)}` : '—'}
+            sub={dayTrades.length ? `${dayTrades.length} trade${dayTrades.length > 1 ? 's' : ''} journaled` : undefined}
+          />
+          <Stat onPress={() => onOpenTab('money')} icon="wallet" color={CATEGORIES.money.color} label="Free money" value={`${free < 0 ? '−' : ''}${fmtMoney(free)}`} sub="left after buckets" />
         </View>
 
         <View style={{ gap: 4 }}>

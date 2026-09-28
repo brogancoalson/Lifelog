@@ -3,7 +3,11 @@ import React, { useState } from 'react';
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { Body, Button, Card, Field, IconButton, Label } from '../components/ui';
 import { AWARD_AREAS } from '../lib/categories';
+import { FOOD_COUNT } from '../data/foods.txt';
+import { testKey } from '../lib/ask';
 import { isValidDay } from '../lib/dates';
+import { grossPaycheck } from '../lib/money';
+import { fmtMoney } from '../lib/stats';
 import { useStore } from '../lib/store';
 import { font, radius, space, useTheme } from '../theme';
 
@@ -19,6 +23,14 @@ export function SettingsScreen({ visible, onClose }: { visible: boolean; onClose
   const [startedOn, setStartedOn] = useState(a.startedOn ?? '');
   const [endpoint, setEndpoint] = useState(data.settings.aiEndpoint ?? '');
   const [key, setKey] = useState(data.settings.aiKey ?? '');
+  const [claudeKey, setClaudeKey] = useState(data.settings.claudeKey ?? '');
+  const [testing, setTesting] = useState(false);
+  const pay = data.settings.pay;
+  const [hourly, setHourly] = useState(String(pay.hourly));
+  const [hoursPerDay, setHoursPerDay] = useState(String(pay.hoursPerDay));
+  const [daysPerWeek, setDaysPerWeek] = useState(String(pay.daysPerWeek));
+  const [periodDays, setPeriodDays] = useState(String(pay.periodDays));
+  const [freeStart, setFreeStart] = useState(data.settings.freeStart ? String(data.settings.freeStart) : '');
   const [restoreText, setRestoreText] = useState('');
   const [msg, setMsg] = useState('');
 
@@ -36,6 +48,12 @@ export function SettingsScreen({ visible, onClose }: { visible: boolean; onClose
     setStartedOn(a.startedOn ?? '');
     setEndpoint(data.settings.aiEndpoint ?? '');
     setKey(data.settings.aiKey ?? '');
+    setClaudeKey(data.settings.claudeKey ?? '');
+    setHourly(String(data.settings.pay.hourly));
+    setHoursPerDay(String(data.settings.pay.hoursPerDay));
+    setDaysPerWeek(String(data.settings.pay.daysPerWeek));
+    setPeriodDays(String(data.settings.pay.periodDays));
+    setFreeStart(data.settings.freeStart ? String(data.settings.freeStart) : '');
     setRestoreText('');
     setMsg('');
   }
@@ -131,10 +149,102 @@ export function SettingsScreen({ visible, onClose }: { visible: boolean; onClose
             </Card>
 
             <Card style={{ gap: space.md }}>
-              <Label>AI sorting</Label>
+              <Label>Claude connection</Label>
               <Body dim style={{ fontSize: 14 }}>
-                Without this, the Log tab uses quick sort, which handles common phrasing offline. Paste your Supabase function URL and key here
-                once it’s set up.
+                Powers the Ask tab, smarter sorting in Log (any food, any phrasing), and the trading journal coach that reads your screenshots.
+                Get a key at console.anthropic.com, add about $5 of credit, and set a monthly spend limit there. The key stays on this device.
+              </Body>
+              <Field
+                label="Claude API key"
+                value={claudeKey}
+                onChangeText={setClaudeKey}
+                placeholder="sk-ant-..."
+                autoCapitalize="none"
+                autoCorrect={false}
+                secureTextEntry
+              />
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                <Button
+                  small
+                  title="Save key"
+                  style={{ flex: 1 }}
+                  onPress={() => {
+                    updateSettings({ claudeKey: claudeKey.trim() || undefined });
+                    flash(claudeKey.trim() ? 'Claude key saved' : 'Claude key removed');
+                  }}
+                />
+                <Button
+                  small
+                  variant="secondary"
+                  title="Test"
+                  loading={testing}
+                  disabled={!claudeKey.trim()}
+                  style={{ flex: 1 }}
+                  onPress={async () => {
+                    setTesting(true);
+                    try {
+                      await testKey(claudeKey.trim());
+                      flash('Connected to Claude');
+                    } catch (e: any) {
+                      flash(e?.message ?? 'Couldn’t reach Claude');
+                    }
+                    setTesting(false);
+                  }}
+                />
+              </View>
+            </Card>
+
+            <Card style={{ gap: space.md }}>
+              <Label>Pay and buckets</Label>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                <View style={{ flex: 1 }}>
+                  <Field label="$ per hour" value={hourly} onChangeText={setHourly} keyboardType="decimal-pad" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Field label="Hours/day" value={hoursPerDay} onChangeText={setHoursPerDay} keyboardType="decimal-pad" />
+                </View>
+              </View>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                <View style={{ flex: 1 }}>
+                  <Field label="Days/week" value={daysPerWeek} onChangeText={setDaysPerWeek} keyboardType="number-pad" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Field label="Paid every (days)" value={periodDays} onChangeText={setPeriodDays} keyboardType="number-pad" />
+                </View>
+              </View>
+              <Field label="Free money on hand now (optional)" value={freeStart} onChangeText={setFreeStart} keyboardType="decimal-pad" placeholder="0" />
+              <Body dim style={{ fontSize: 13 }}>
+                Paycheck estimate: {fmtMoney(grossPaycheck({ hourly: num(hourly, pay.hourly), hoursPerDay: num(hoursPerDay, pay.hoursPerDay), daysPerWeek: num(daysPerWeek, pay.daysPerWeek), periodDays: num(periodDays, pay.periodDays) || 14 }))} before taxes. “$ per day” buckets use the days between paychecks.
+              </Body>
+              <Button
+                small
+                title="Save pay settings"
+                onPress={() => {
+                  updateSettings({
+                    pay: {
+                      hourly: num(hourly, pay.hourly),
+                      hoursPerDay: num(hoursPerDay, pay.hoursPerDay),
+                      daysPerWeek: num(daysPerWeek, pay.daysPerWeek),
+                      periodDays: num(periodDays, pay.periodDays) || 14,
+                    },
+                    freeStart: parseFloat(freeStart) || undefined,
+                  });
+                  flash('Pay settings saved');
+                }}
+              />
+            </Card>
+
+            <Card style={{ gap: space.md }}>
+              <Label>Food database</Label>
+              <Body dim style={{ fontSize: 14 }}>
+                {FOOD_COUNT.toLocaleString('en-US')} foods from USDA FoodData Central, built in and offline, plus your Claude connection for anything it doesn’t know.
+              </Body>
+            </Card>
+
+            <Card style={{ gap: space.md }}>
+              <Label>Advanced: server sorting</Label>
+              <Body dim style={{ fontSize: 14 }}>
+                Only if you set up the Supabase function instead of using a key above.
               </Body>
               <Field label="Function URL" value={endpoint} onChangeText={setEndpoint} placeholder="https://xxxx.supabase.co/functions/v1/parse-log" autoCapitalize="none" autoCorrect={false} />
               <Field label="Supabase anon key" value={key} onChangeText={setKey} placeholder="eyJ..." autoCapitalize="none" autoCorrect={false} secureTextEntry />

@@ -3,7 +3,7 @@ import { AWARD_ORDER, CATEGORIES } from './categories';
 import { addDays, parseDay, weekStart } from './dates';
 import { isWater, toOz } from './stats';
 
-export type TrackerKey = 'water' | 'food' | 'workout' | 'money' | 'mood' | 'award';
+export type TrackerKey = 'water' | 'food' | 'workout' | 'sleep' | 'money' | 'mood' | 'award';
 export type RangeKey = '7d' | '30d' | '90d' | 'all';
 
 export interface TrackerMeta {
@@ -18,6 +18,7 @@ export const TRACKERS: Record<TrackerKey, TrackerMeta> = {
   water: { title: 'Water', icon: 'water', color: CATEGORIES.drink.color, chartTitle: 'Water per day (oz)' },
   food: { title: 'Meals', icon: 'restaurant', color: CATEGORIES.food.color, chartTitle: 'Meals per day' },
   workout: { title: 'Workouts', icon: 'barbell', color: CATEGORIES.workout.color, chartTitle: 'Workouts per day' },
+  sleep: { title: 'Sleep', icon: 'moon', color: CATEGORIES.sleep.color, chartTitle: 'Hours slept per night' },
   money: { title: 'Money', icon: 'cash', color: CATEGORIES.money.color, chartTitle: 'Net per day ($)' },
   mood: { title: 'Mood', icon: 'happy', color: CATEGORIES.mood.color, chartTitle: 'Average mood (1–5)' },
   award: { title: 'Award hours', icon: 'medal', color: 'accent', chartTitle: 'Award hours per day' },
@@ -39,6 +40,8 @@ export function trackerEntries(key: TrackerKey, entries: Entry[]): Entry[] {
       return entries.filter((e) => e.category === 'food');
     case 'workout':
       return entries.filter((e) => e.category === 'workout');
+    case 'sleep':
+      return entries.filter((e) => e.category === 'sleep');
     case 'money':
       return entries.filter((e) => typeof e.money === 'number');
     case 'mood':
@@ -72,6 +75,10 @@ export function dayValue(key: TrackerKey, dayEntries: Entry[]): number | null {
       return dayEntries.length;
     case 'workout':
       return dayEntries.length;
+    case 'sleep': {
+      const m = dayEntries.reduce((a, e) => a + (e.minutes ?? 0), 0);
+      return m ? Math.round((m / 60) * 10) / 10 : null;
+    }
     case 'money':
       return dayEntries.reduce((a, e) => a + (e.money ?? 0), 0);
     case 'mood': {
@@ -134,7 +141,7 @@ export function buckets(key: TrackerKey, entries: Entry[], start: string, today:
     }
     let value: number | null = null;
     if (vals.length) {
-      value = key === 'mood' ? vals.reduce((a, b) => a + b, 0) / vals.length : vals.reduce((a, b) => a + b, 0);
+      value = key === 'mood' || key === 'sleep' ? vals.reduce((a, b) => a + b, 0) / vals.length : vals.reduce((a, b) => a + b, 0);
       value = Math.round(value * 10) / 10;
     }
     out.push({ key: ws, label: md(ws).split(' ')[1], long: `Week of ${md(ws)}`, value });

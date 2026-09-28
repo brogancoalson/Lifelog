@@ -10,10 +10,11 @@ Split the message into separate entries, one per distinct thing they did, ate, d
 Keep one meal as one entry ("chicken and rice" is one food entry). Keep one gym session as one workout entry with every lift in "lifts".
 
 Fields for each entry:
-- category: one of food, drink, workout, activity, business, social, mood, money, note
+- category: one of food, drink, workout, activity, business, social, mood, money, sleep, note
   - business = anything for their work or businesses (apparel brand, agency, content, trading work, client calls, orders)
   - social = time with people (dates, girlfriend, friends, family, church community)
   - money = any amount earned or spent
+  - sleep = a night's sleep or a nap (minutes = time asleep; mood = sleep quality 1-5 if described)
   - note = only if nothing else fits
 - text: just the thing itself, never the sentence. Drop "I", "ate", "had", "drank", "spent", "felt", amounts, durations, and times.
   "I ate a western burger and fries" -> "Western burger and fries". "I drank 32 oz of water" -> "Water".
@@ -47,7 +48,7 @@ export const ENTRY_JSON_SCHEMA = {
         properties: {
           category: {
             type: 'string',
-            enum: ['food', 'drink', 'workout', 'activity', 'business', 'social', 'mood', 'money', 'note'],
+            enum: ['food', 'drink', 'workout', 'activity', 'business', 'social', 'mood', 'money', 'sleep', 'note'],
           },
           text: { type: 'string' },
           date: { type: 'string' },

@@ -8,6 +8,7 @@ import { withEstimate } from './nutrition';
  */
 
 const RE = {
+  sleep: /\b(slept|sleep|asleep|nap|napped|went to bed|bed at|woke up|wake up|woke at)\b/i,
   moneyAmt: /\$\s?(\d[\d,]*(?:\.\d+)?)|(\d[\d,]*(?:\.\d+)?)\s?(?:bucks|dollars|usd)\b/i,
   moneyIn: /\b(made|make|sold|earned|got paid|profit|revenue|income|won|received|paid me|tip|tips|commission)\b/i,
   moneyOut: /\b(spent|spend|bought|buy|paid|pay|cost|costs|purchase[d]?|bill|subscription|lost)\b/i,
@@ -169,6 +170,8 @@ export function itemText(category: Category, chunk: string, e: Partial<Entry> = 
       if (!t) t = (e.money ?? 0) >= 0 ? 'Income' : 'Expense';
       break;
     }
+    case 'sleep':
+      return /\bnap/i.test(chunk) ? 'Nap' : 'Sleep';
     case 'mood': {
       t = t.replace(/^(felt|feel|feeling|was|am|been|i'm|im)\s+/i, '');
       t = t.replace(/^(pretty|really|so|very|super|kinda|kind of|a bit|a little)\s+/i, '');
@@ -188,6 +191,7 @@ export function itemText(category: Category, chunk: string, e: Partial<Entry> = 
 function classify(s: string): Category {
   const hasMoney = RE.moneyAmt.test(s) && (RE.moneyIn.test(s) || RE.moneyOut.test(s));
   if (hasMoney) return 'money';
+  if (RE.sleep.test(s)) return 'sleep';
   if (RE.workout.test(s)) return 'workout';
   if (RE.service.test(s) || RE.personal.test(s)) return 'activity';
   if (RE.social.test(s)) return 'social';
@@ -262,11 +266,37 @@ export function quickParse(message: string, now: Date = new Date()): Entry[] {
       e.kind = drinkKind(chunk);
     }
     if (category === 'mood') e.mood = moodScore(chunk);
+    if (category === 'sleep') {
+      // "went to bed at 11 and woke up at 6:30"
+      const bed = chunk.match(/\b(?:bed|slept|asleep|sleep)\b[^0-9]*(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);
+      const wake = chunk.match(/\b(?:woke|wake|up)\b[^0-9]*(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);
+      if (!e.minutes && bed && wake) {
+        const toMin = (h: number, m: number, ap: string | undefined, isBed: boolean) => {
+          let hh = h % 12;
+          if (ap ? ap.toLowerCase() === 'pm' : isBed && h >= 7) hh += 12; // "bed at 11" means pm
+          return hh * 60 + m;
+        };
+        const b = toMin(+bed[1], +(bed[2] ?? 0), bed[3], true);
+        const w = toMin(+wake[1], +(wake[2] ?? 0), wake[3], false);
+        const mins = (w - b + 1440) % 1440;
+        if (mins >= 60 && mins <= 16 * 60) e.minutes = mins;
+      }
+      if (/\b(great|amazing|deep|solid|good|well|rested)\b/i.test(chunk)) e.mood = /\b(great|amazing|deep)\b/i.test(chunk) ? 5 : 4;
+      else if (/\b(bad|rough|terrible|awful|crap|poorly|restless|barely|trash)\b/i.test(chunk)) e.mood = 2;
+    }
     if (category === 'activity') {
       if (RE.service.test(chunk)) e.awardArea = e.minutes ? 'service' : undefined;
       else if (RE.personal.test(chunk)) e.awardArea = e.minutes ? 'personal' : undefined;
     }
     e.text = itemText(category, chunk, e);
+    // "slept great, 8 hours" / "6.5 hrs of sleep, slept like crap" -> one sleep entry
+    const last = out[out.length - 1];
+    const bareDuration = !!e.minutes && /^\s*(about |like |around )?[\d.]+\s*(h|hr|hrs|hours?|m|mins?|minutes?)\s*$/i.test(chunk);
+    if (last && last.category === 'sleep' && last.date === e.date && (category === 'sleep' || bareDuration)) {
+      last.minutes = last.minutes ?? e.minutes;
+      last.mood = last.mood ?? e.mood;
+      continue;
+    }
     // "benched 225x5, 1 hr at the gym" -> one workout with a duration, not two entries
     const prev = out[out.length - 1];
     if (prev && prev.category === 'workout' && category === 'workout' && !e.lifts && e.minutes && !prev.minutes && prev.date === e.date) {

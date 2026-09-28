@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { AWARD_AREAS, AWARD_ORDER, CATEGORIES, CATEGORY_ORDER, MOOD_LABELS } from '../lib/categories';
 import { addDays, prettyDay, toDay, toTime, uid } from '../lib/dates';
+import { matchBucket } from '../lib/money';
 import { estimateNutrition } from '../lib/nutrition';
 import { normalizeEntry } from '../lib/storage';
 import { useStore } from '../lib/store';
@@ -32,6 +33,9 @@ interface Form {
   moneyDir: 'in' | 'out';
   mood: number;
   lifts: LiftForm[];
+  bucketId?: string;
+  bucketTouched: boolean;
+  sleepHours: string;
   awardArea?: AwardArea;
   validator: string;
 }
@@ -58,6 +62,9 @@ function toForm(e?: Entry, defaults?: Partial<Entry>): Form {
     moneyDir: e?.money !== undefined && e.money >= 0 ? 'in' : 'out',
     mood: e?.mood ?? 0,
     lifts: (e?.lifts ?? []).map((l) => ({ key: uid(), name: l.name, weight: s(l.weight), reps: s(l.reps), sets: s(l.sets) })),
+    bucketId: e?.bucketId,
+    bucketTouched: !!e,
+    sleepHours: e?.category === 'sleep' && e.minutes ? s(Math.round((e.minutes / 60) * 100) / 100) : '',
     awardArea: e?.awardArea ?? defaults?.awardArea,
     validator: e?.validator ?? '',
   };
@@ -76,7 +83,7 @@ export function EntryEditor({
 }) {
   const t = useTheme();
   const insets = useInsets();
-  const { addEntries, updateEntry, deleteEntries } = useStore();
+  const { data, addEntries, updateEntry, deleteEntries } = useStore();
   const [f, setF] = useState<Form>(() => toForm(entry, defaults));
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -131,6 +138,14 @@ export function EntryEditor({
       }
     }
     if (cat === 'money' && moneyVal !== undefined) raw.money = f.moneyDir === 'in' ? moneyVal : -moneyVal;
+    if (cat === 'money' && f.moneyDir === 'out') raw.bucketId = f.bucketTouched ? f.bucketId : matchBucket(f.text, f.kind, data.buckets);
+    if (cat === 'money' && f.moneyDir === 'in' && entry?.allocations) raw.allocations = entry.allocations;
+    if (cat === 'money' && entry?.incomeKind) raw.incomeKind = entry.incomeKind;
+    if (cat === 'sleep') {
+      const h = n(f.sleepHours);
+      raw.minutes = h !== undefined ? Math.round(h * 60) : undefined;
+      if (f.mood) raw.mood = f.mood;
+    }
     if (cat === 'mood' && f.mood) raw.mood = f.mood;
     if (cat === 'workout')
       raw.lifts = f.lifts.filter((l) => l.name.trim()).map((l) => ({ name: l.name, weight: n(l.weight), reps: n(l.reps), sets: n(l.sets) }));
@@ -153,6 +168,7 @@ export function EntryEditor({
     social: 'Dinner date',
     mood: 'Locked in today',
     money: 'Sold 2 hoodies',
+    sleep: 'Slept',
     note: 'Anything else',
   };
 
@@ -303,8 +319,43 @@ export function EntryEditor({
                     <Field label="Amount ($)" value={f.money} onChangeText={(v) => set('money', v)} keyboardType="decimal-pad" placeholder="0.00" />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Field label="For (optional)" value={f.kind} onChangeText={(v) => set('kind', v)} placeholder="business" autoCapitalize="none" />
+                    <Field label="For (optional)" value={f.kind} onChangeText={(v) => set('kind', v)} placeholder={f.moneyDir === 'out' ? 'gas' : 'business'} autoCapitalize="none" />
                   </View>
+                </View>
+                {f.moneyDir === 'out' && data.buckets.length ? (
+                  <View style={{ gap: 8 }}>
+                    <Label>Came out of</Label>
+                    <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+                      {(() => {
+                        const picked = f.bucketTouched ? f.bucketId : matchBucket(f.text, f.kind, data.buckets);
+                        return (
+                          <>
+                            <Chip label="Free money" selected={!picked} onPress={() => setF((p) => ({ ...p, bucketId: undefined, bucketTouched: true }))} />
+                            {data.buckets.map((b) => (
+                              <Chip key={b.id} label={b.name} selected={picked === b.id} onPress={() => setF((p) => ({ ...p, bucketId: b.id, bucketTouched: true }))} />
+                            ))}
+                          </>
+                        );
+                      })()}
+                    </View>
+                  </View>
+                ) : null}
+              </View>
+            ) : null}
+
+            {cat === 'sleep' ? (
+              <View style={{ gap: 10 }}>
+                <View style={{ flexDirection: 'row', gap: 12 }}>
+                  <View style={{ flex: 1 }}>
+                    <Field label="Hours slept" value={f.sleepHours} onChangeText={(v) => set('sleepHours', v)} keyboardType="decimal-pad" placeholder="7.5" />
+                  </View>
+                  <View style={{ flex: 1 }} />
+                </View>
+                <Label>How you slept</Label>
+                <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+                  {[1, 2, 3, 4, 5].map((m) => (
+                    <Chip key={m} label={`${m} · ${MOOD_LABELS[m]}`} color={CATEGORIES.sleep.color} selected={f.mood === m} onPress={() => set('mood', f.mood === m ? 0 : m)} />
+                  ))}
                 </View>
               </View>
             ) : null}
@@ -320,7 +371,7 @@ export function EntryEditor({
               </View>
             ) : null}
 
-            {cat !== 'mood' && cat !== 'money' && cat !== 'food' && cat !== 'drink' ? (
+            {cat !== 'mood' && cat !== 'money' && cat !== 'food' && cat !== 'drink' && cat !== 'sleep' ? (
               <View style={{ flexDirection: 'row', gap: 12 }}>
                 <View style={{ flex: 1 }}>
                   <Field label="Minutes" value={f.minutes} onChangeText={(v) => set('minutes', v)} keyboardType="number-pad" placeholder="60" />

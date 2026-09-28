@@ -54,6 +54,10 @@ const FIELDS_FOR: Record<Category, { key: GoalField; label: string }[]> = {
     { key: 'minutes', label: 'Minutes' },
   ],
   mood: [{ key: 'count', label: 'Check-ins' }],
+  sleep: [
+    { key: 'minutes', label: 'Time asleep' },
+    { key: 'count', label: 'Nights logged' },
+  ],
   money: [
     { key: 'moneyIn', label: 'Money made' },
     { key: 'moneyOut', label: 'Money spent' },

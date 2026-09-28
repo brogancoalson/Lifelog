@@ -12,18 +12,24 @@ import { GoalsScreen } from './screens/GoalsScreen';
 import { HistoryScreen } from './screens/HistoryScreen';
 import { LogScreen } from './screens/LogScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
+import { AskScreen } from './screens/AskScreen';
+import { MoneyScreen } from './screens/MoneyScreen';
 import { TodayScreen } from './screens/TodayScreen';
+import { TradeScreen } from './screens/TradeScreen';
 import { TrackerScreen } from './screens/TrackerScreen';
+import { foodCount } from './lib/foodDb';
 import type { TrackerKey } from './lib/trackers';
 import { font, useInsets, useTheme } from './theme';
 
-type Tab = 'today' | 'log' | 'goals' | 'history';
+type Tab = 'today' | 'log' | 'money' | 'trade' | 'ask' | 'goals';
 
 const TABS: { key: Tab; label: string; icon: string }[] = [
   { key: 'today', label: 'Today', icon: 'today' },
   { key: 'log', label: 'Log', icon: 'chatbubble-ellipses' },
+  { key: 'money', label: 'Money', icon: 'wallet' },
+  { key: 'trade', label: 'Trade', icon: 'trending-up' },
+  { key: 'ask', label: 'Ask', icon: 'sparkles' },
   { key: 'goals', label: 'Goals', icon: 'trophy' },
-  { key: 'history', label: 'History', icon: 'time' },
 ];
 
 function Shell() {
@@ -34,16 +40,31 @@ function Shell() {
   const [tab, setTab] = useState<Tab>('today');
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [tracker, setTracker] = useState<TrackerKey | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const overlay = !!tracker || historyOpen;
 
-  // Android back button closes a tracker page instead of leaving the app.
+  // Android back button closes a detail page instead of leaving the app.
   useEffect(() => {
-    if (!tracker) return;
+    if (!overlay) return;
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
       setTracker(null);
+      setHistoryOpen(false);
       return true;
     });
     return () => sub.remove();
-  }, [tracker]);
+  }, [overlay]);
+
+  // Build the 52k-food search index in the background so the first log is instant.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      try {
+        foodCount();
+      } catch {
+        // estimates still work from the short list
+      }
+    }, 2500);
+    return () => clearTimeout(t);
+  }, []);
 
   // Wait for data and fonts (if fonts fail, carry on with the system font).
   if (!ready || (!fontsLoaded && !fontError)) {
@@ -58,14 +79,23 @@ function Shell() {
     <View style={{ flex: 1, backgroundColor: t.bg }}>
       <View style={{ flex: 1, width: '100%', maxWidth: 720, alignSelf: 'center' }}>
         {tracker ? <TrackerScreen tracker={tracker} onBack={() => setTracker(null)} /> : null}
-        {!tracker && tab === 'today' ? (
-          <TodayScreen onOpenSettings={() => setSettingsOpen(true)} onGoLog={() => setTab('log')} onOpenTracker={setTracker} />
+        {historyOpen && !tracker ? <HistoryScreen onBack={() => setHistoryOpen(false)} /> : null}
+        {!overlay && tab === 'today' ? (
+          <TodayScreen
+            onOpenSettings={() => setSettingsOpen(true)}
+            onGoLog={() => setTab('log')}
+            onOpenTracker={setTracker}
+            onOpenTab={setTab}
+            onOpenHistory={() => setHistoryOpen(true)}
+          />
         ) : null}
-        {!tracker && tab === 'log' ? <LogScreen /> : null}
-        {!tracker && tab === 'goals' ? <GoalsScreen /> : null}
-        {!tracker && tab === 'history' ? <HistoryScreen /> : null}
+        {!overlay && tab === 'log' ? <LogScreen /> : null}
+        {!overlay && tab === 'money' ? <MoneyScreen /> : null}
+        {!overlay && tab === 'trade' ? <TradeScreen /> : null}
+        {!overlay && tab === 'ask' ? <AskScreen onOpenSettings={() => setSettingsOpen(true)} /> : null}
+        {!overlay && tab === 'goals' ? <GoalsScreen /> : null}
       </View>
-      {!tracker ? (
+      {!overlay ? (
         <View
           accessibilityRole="tablist"
           style={{
@@ -88,8 +118,8 @@ function Shell() {
                 onPress={() => setTab(item.key)}
                 style={{ flex: 1, alignItems: 'center', gap: 2, paddingVertical: 6, borderTopWidth: 3, borderTopColor: active ? t.accent : 'transparent' }}
               >
-                <Icon name={active ? item.icon : `${item.icon}-outline`} size={23} color={active ? t.text : t.textFaint} />
-                <Text style={{ fontSize: 13, fontFamily: font.label, letterSpacing: 1.2, textTransform: 'uppercase', color: active ? t.text : t.textFaint }}>
+                <Icon name={active ? item.icon : `${item.icon}-outline`} size={22} color={active ? t.text : t.textFaint} />
+                <Text numberOfLines={1} style={{ fontSize: 12, fontFamily: font.label, letterSpacing: 1, textTransform: 'uppercase', color: active ? t.text : t.textFaint }}>
                   {item.label}
                 </Text>
               </Pressable>

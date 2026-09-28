@@ -1,7 +1,11 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import type { AppData, ChatMessage, Entry, Goal, Settings } from '../types';
+import type { AppData, Bucket, ChatMessage, Entry, Goal, Settings, Trade, Transfer } from '../types';
 import { uid } from './dates';
+import { matchBucket, starterBuckets } from './money';
 import { emptyData, loadData, normalizeData, saveData } from './storage';
+
+export type ChatKey = 'chat' | 'askChat' | 'tradeChat';
+const CHAT_MAX: Record<ChatKey, number> = { chat: 100, askChat: 60, tradeChat: 100 };
 
 interface Store {
   data: AppData;
@@ -13,8 +17,16 @@ interface Store {
   upsertGoal: (goal: Goal) => void;
   deleteGoal: (id: string) => void;
   updateSettings: (patch: Partial<Settings>) => void;
-  addChat: (msg: Omit<ChatMessage, 'id' | 'createdAt'>) => string;
-  updateChat: (id: string, patch: Partial<ChatMessage>) => void;
+  addChat: (msg: Omit<ChatMessage, 'id' | 'createdAt'>, key?: ChatKey) => string;
+  updateChat: (id: string, patch: Partial<ChatMessage>, key?: ChatKey) => void;
+  clearChat: (key: ChatKey) => void;
+  upsertBucket: (b: Bucket) => void;
+  deleteBucket: (id: string) => void;
+  moveBucket: (id: string, dir: -1 | 1) => void;
+  addTransfer: (t: Transfer) => void;
+  deleteTransfer: (id: string) => void;
+  upsertTrade: (t: Trade) => void;
+  deleteTrades: (ids: string[]) => void;
   replaceAll: (raw: unknown) => boolean;
 }
 
@@ -28,6 +40,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     loadData().then((d) => {
+      // first run with buckets: add the starter set once
+      if (!d.settings.bucketsSeeded && d.buckets.length === 0) {
+        d = { ...d, buckets: starterBuckets(), settings: { ...d.settings, bucketsSeeded: true } };
+      }
       setData(d);
       setReady(true);
     });
@@ -44,7 +60,15 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const addEntries = useCallback((entries: Entry[]) => {
     if (!entries.length) return;
-    setData((d) => ({ ...d, entries: [...d.entries, ...entries] }));
+    setData((d) => {
+      // spending with no bucket picked goes to the bucket its words match ("gas" -> Gas)
+      const withBuckets = entries.map((e) =>
+        typeof e.money === 'number' && e.money < 0 && !e.bucketId
+          ? { ...e, bucketId: matchBucket(e.text, e.kind, d.buckets) }
+          : e,
+      );
+      return { ...d, entries: [...d.entries, ...withBuckets] };
+    });
   }, []);
 
   const updateEntry = useCallback((entry: Entry) => {
@@ -71,17 +95,69 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     setData((d) => ({ ...d, settings: { ...d.settings, ...patch } }));
   }, []);
 
-  const addChat = useCallback((msg: Omit<ChatMessage, 'id' | 'createdAt'>) => {
+  const addChat = useCallback((msg: Omit<ChatMessage, 'id' | 'createdAt'>, key: ChatKey = 'chat') => {
     const id = uid();
     setData((d) => ({
       ...d,
-      chat: [...d.chat, { ...msg, id, createdAt: new Date().toISOString() }].slice(-100),
+      [key]: [...d[key], { ...msg, id, createdAt: new Date().toISOString() }].slice(-CHAT_MAX[key]),
     }));
     return id;
   }, []);
 
-  const updateChat = useCallback((id: string, patch: Partial<ChatMessage>) => {
-    setData((d) => ({ ...d, chat: d.chat.map((m) => (m.id === id ? { ...m, ...patch } : m)) }));
+  const updateChat = useCallback((id: string, patch: Partial<ChatMessage>, key: ChatKey = 'chat') => {
+    setData((d) => ({ ...d, [key]: d[key].map((m) => (m.id === id ? { ...m, ...patch } : m)) }));
+  }, []);
+
+  const clearChat = useCallback((key: ChatKey) => {
+    setData((d) => ({ ...d, [key]: [] }));
+  }, []);
+
+  const upsertBucket = useCallback((b: Bucket) => {
+    setData((d) => {
+      const exists = d.buckets.some((x) => x.id === b.id);
+      return { ...d, buckets: exists ? d.buckets.map((x) => (x.id === b.id ? b : x)) : [...d.buckets, b] };
+    });
+  }, []);
+
+  const deleteBucket = useCallback((id: string) => {
+    // spending and transfers that pointed at it fall back to free money
+    setData((d) => ({
+      ...d,
+      buckets: d.buckets.filter((b) => b.id !== id),
+      entries: d.entries.map((e) => (e.bucketId === id ? { ...e, bucketId: undefined } : e)),
+      transfers: d.transfers.filter((t) => t.from !== id && t.to !== id),
+    }));
+  }, []);
+
+  const moveBucket = useCallback((id: string, dir: -1 | 1) => {
+    setData((d) => {
+      const i = d.buckets.findIndex((b) => b.id === id);
+      const j = i + dir;
+      if (i < 0 || j < 0 || j >= d.buckets.length) return d;
+      const list = [...d.buckets];
+      [list[i], list[j]] = [list[j], list[i]];
+      return { ...d, buckets: list };
+    });
+  }, []);
+
+  const addTransfer = useCallback((t: Transfer) => {
+    setData((d) => ({ ...d, transfers: [...d.transfers, t] }));
+  }, []);
+
+  const deleteTransfer = useCallback((id: string) => {
+    setData((d) => ({ ...d, transfers: d.transfers.filter((t) => t.id !== id) }));
+  }, []);
+
+  const upsertTrade = useCallback((t: Trade) => {
+    setData((d) => {
+      const exists = d.trades.some((x) => x.id === t.id);
+      return { ...d, trades: exists ? d.trades.map((x) => (x.id === t.id ? t : x)) : [...d.trades, t] };
+    });
+  }, []);
+
+  const deleteTrades = useCallback((ids: string[]) => {
+    const set = new Set(ids);
+    setData((d) => ({ ...d, trades: d.trades.filter((t) => !set.has(t.id)) }));
   }, []);
 
   const replaceAll = useCallback((raw: unknown) => {
@@ -103,9 +179,38 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       updateSettings,
       addChat,
       updateChat,
+      clearChat,
+      upsertBucket,
+      deleteBucket,
+      moveBucket,
+      addTransfer,
+      deleteTransfer,
+      upsertTrade,
+      deleteTrades,
       replaceAll,
     }),
-    [data, ready, saveFailed, addEntries, updateEntry, deleteEntries, upsertGoal, deleteGoal, updateSettings, addChat, updateChat, replaceAll],
+    [
+      data,
+      ready,
+      saveFailed,
+      addEntries,
+      updateEntry,
+      deleteEntries,
+      upsertGoal,
+      deleteGoal,
+      updateSettings,
+      addChat,
+      updateChat,
+      clearChat,
+      upsertBucket,
+      deleteBucket,
+      moveBucket,
+      addTransfer,
+      deleteTransfer,
+      upsertTrade,
+      deleteTrades,
+      replaceAll,
+    ],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

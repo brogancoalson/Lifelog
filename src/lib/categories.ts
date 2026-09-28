@@ -15,6 +15,7 @@ export const CATEGORIES: Record<Category, CategoryMeta> = {
   social: { label: 'Social', icon: 'heart', color: '#9E5A6B' },
   mood: { label: 'Mood', icon: 'happy', color: '#A8893F' },
   money: { label: 'Money', icon: 'cash', color: '#5E8C52' },
+  sleep: { label: 'Sleep', icon: 'moon', color: '#6878A0' },
   note: { label: 'Note', icon: 'document-text', color: '#6A665F' },
 };
 
@@ -22,6 +23,7 @@ export const CATEGORY_ORDER: Category[] = [
   'food',
   'drink',
   'workout',
+  'sleep',
   'activity',
   'business',
   'social',

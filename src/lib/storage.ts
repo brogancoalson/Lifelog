@@ -1,9 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { AppData, Entry, Goal, Lift, Settings } from '../types';
+import type { Allocation, AppData, Bucket, ChatMessage, Entry, Goal, Lift, Settings, Trade, Transfer } from '../types';
 import { isAwardArea, isCategory } from './categories';
 import { isValidDay, toDay, toTime, uid } from './dates';
 
 const KEY = 'lifelog:data:v1';
+
+export const DEFAULT_PAY = { hourly: 20, hoursPerDay: 5, daysPerWeek: 4, periodDays: 14 };
 
 export const DEFAULT_SETTINGS: Settings = {
   award: {
@@ -12,10 +14,22 @@ export const DEFAULT_SETTINGS: Settings = {
     minMonths: 24,
     expeditionDone: false,
   },
+  pay: DEFAULT_PAY,
 };
 
 export function emptyData(): AppData {
-  return { version: 1, entries: [], goals: [], settings: DEFAULT_SETTINGS, chat: [] };
+  return {
+    version: 1,
+    entries: [],
+    goals: [],
+    settings: DEFAULT_SETTINGS,
+    chat: [],
+    buckets: [],
+    transfers: [],
+    trades: [],
+    askChat: [],
+    tradeChat: [],
+  };
 }
 
 const num = (v: unknown): number | undefined => {
@@ -63,8 +77,85 @@ export function normalizeEntry(raw: any, fallback: Partial<Entry> = {}): Entry |
     lifts: lifts && lifts.length ? lifts : undefined,
     awardArea: isAwardArea(raw.awardArea) ? raw.awardArea : undefined,
     validator: str(raw.validator, 80),
+    bucketId: str(raw.bucketId, 40),
+    allocations: normalizeAllocations(raw.allocations),
+    incomeKind: raw.incomeKind === 'paycheck' || raw.incomeKind === 'other' ? raw.incomeKind : undefined,
     source: raw.source === 'chat' || raw.source === 'manual' || raw.source === 'health' ? raw.source : fallback.source ?? 'chat',
   };
+}
+
+function normalizeAllocations(raw: any): Allocation[] | undefined {
+  if (!Array.isArray(raw)) return undefined;
+  const list = raw
+    .map((a: any) => ({ bucketId: str(a?.bucketId, 40) ?? '', amount: num(a?.amount) ?? 0 }))
+    .filter((a: Allocation) => a.bucketId && a.amount > 0);
+  return list.length ? list : undefined;
+}
+
+export function normalizeBucket(raw: any): Bucket | null {
+  const name = str(raw?.name, 40);
+  if (!name) return null;
+  return {
+    id: str(raw.id, 40) ?? uid(),
+    name,
+    rule: raw.rule === 'percent' || raw.rule === 'daily' ? raw.rule : 'fixed',
+    value: Math.max(0, num(raw.value) ?? 0),
+    kind: raw.kind === 'save' ? 'save' : 'spend',
+    keywords: Array.isArray(raw.keywords)
+      ? raw.keywords.map((k: any) => str(k, 30)?.toLowerCase()).filter(Boolean).slice(0, 20)
+      : undefined,
+    start: num(raw.start),
+    createdAt: str(raw.createdAt, 40) ?? new Date().toISOString(),
+  };
+}
+
+function normalizeTransfer(raw: any): Transfer | null {
+  const amount = num(raw?.amount);
+  const from = str(raw?.from, 40);
+  const to = str(raw?.to, 40);
+  if (!amount || amount <= 0 || !from || !to || from === to) return null;
+  return {
+    id: str(raw.id, 40) ?? uid(),
+    date: isValidDay(raw.date) ? raw.date : toDay(),
+    from,
+    to,
+    amount,
+    note: str(raw.note, 120),
+    createdAt: str(raw.createdAt, 40) ?? new Date().toISOString(),
+  };
+}
+
+export function normalizeTrade(raw: any, fallback: Partial<Trade> = {}): Trade | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const notes = str(raw.notes, 4000) ?? '';
+  const images = Array.isArray(raw.images) ? raw.images.map((i: any) => str(i, 200)).filter(Boolean) : [];
+  if (!notes && !images.length && raw.pnl === undefined) return null;
+  const time = typeof raw.time === 'string' && /^\d{1,2}:\d{2}$/.test(raw.time) ? raw.time.padStart(5, '0') : undefined;
+  return {
+    id: str(raw.id, 40) ?? uid(),
+    date: isValidDay(raw.date) ? raw.date : fallback.date ?? toDay(),
+    time: time ?? fallback.time,
+    symbol: (str(raw.symbol, 16) ?? fallback.symbol ?? 'MES').toUpperCase(),
+    direction: raw.direction === 'long' || raw.direction === 'short' ? raw.direction : undefined,
+    contracts: num(raw.contracts),
+    entry: num(raw.entry),
+    exit: num(raw.exit),
+    pnl: num(raw.pnl),
+    setup: str(raw.setup, 200),
+    good: str(raw.good, 1000),
+    bad: str(raw.bad, 1000),
+    emotion: str(raw.emotion, 200),
+    notes,
+    images,
+    createdAt: str(raw.createdAt, 40) ?? new Date().toISOString(),
+    source: raw.source === 'manual' ? 'manual' : 'chat',
+  };
+}
+
+function normalizeChat(raw: any, max = 100): ChatMessage[] {
+  return Array.isArray(raw)
+    ? raw.filter((m: any) => m && (m.role === 'me' || m.role === 'app') && typeof m.text === 'string').slice(-max)
+    : [];
 }
 
 function normalizeGoal(raw: any): Goal | null {
@@ -97,9 +188,19 @@ export function normalizeData(raw: any): AppData {
   const s = raw.settings ?? {};
   const a = s.award ?? {};
   const t = a.targets ?? {};
+  const p = s.pay ?? {};
   const settings: Settings = {
     aiEndpoint: str(s.aiEndpoint, 300),
     aiKey: str(s.aiKey, 1000),
+    claudeKey: str(s.claudeKey, 300),
+    pay: {
+      hourly: num(p.hourly) ?? DEFAULT_PAY.hourly,
+      hoursPerDay: num(p.hoursPerDay) ?? DEFAULT_PAY.hoursPerDay,
+      daysPerWeek: num(p.daysPerWeek) ?? DEFAULT_PAY.daysPerWeek,
+      periodDays: num(p.periodDays) ?? DEFAULT_PAY.periodDays,
+    },
+    freeStart: num(s.freeStart),
+    bucketsSeeded: s.bucketsSeeded === true,
     award: {
       level: str(a.level, 40) ?? base.settings.award.level,
       targets: {
@@ -113,12 +214,19 @@ export function normalizeData(raw: any): AppData {
       expeditionDone: a.expeditionDone === true,
     },
   };
-  const chat = Array.isArray(raw.chat)
-    ? raw.chat
-        .filter((m: any) => m && (m.role === 'me' || m.role === 'app') && typeof m.text === 'string')
-        .slice(-100)
-    : [];
-  return { version: 1, entries, goals, settings, chat };
+  const list = <T,>(v: any, f: (x: any) => T | null) => (Array.isArray(v) ? (v.map(f).filter(Boolean) as T[]) : []);
+  return {
+    version: 1,
+    entries,
+    goals,
+    settings,
+    chat: normalizeChat(raw.chat),
+    buckets: list(raw.buckets, normalizeBucket),
+    transfers: list(raw.transfers, normalizeTransfer),
+    trades: list(raw.trades, (t) => normalizeTrade(t)),
+    askChat: normalizeChat(raw.askChat, 60),
+    tradeChat: normalizeChat(raw.tradeChat, 100),
+  };
 }
 
 export async function loadData(): Promise<AppData> {

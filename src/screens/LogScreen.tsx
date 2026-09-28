@@ -19,6 +19,7 @@ const EXAMPLES = [
 ];
 
 const MODE_LABEL: Record<SortMode, string> = {
+  'ai-key': 'AI sorting on',
   'ai-server': 'AI sorting on',
   'ai-preview': 'AI sorting on (preview)',
   quick: 'Quick sort (offline)',
