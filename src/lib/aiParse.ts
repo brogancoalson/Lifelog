@@ -3,6 +3,7 @@ import type { Entry, Settings } from '../types';
 import { toDay, toTime } from './dates';
 import { buildParsePrompt, ENTRY_JSON_SCHEMA } from './parsePrompt';
 import { quickParse } from './quickParse';
+import { withEstimate } from './nutrition';
 import { normalizeEntry } from './storage';
 
 export type SortMode = 'ai-server' | 'ai-preview' | 'quick';
@@ -48,7 +49,7 @@ export async function sortMessage(message: string, settings: Settings): Promise<
   const time = toTime(now);
   const fallback: Partial<Entry> = { date: today, time, source: 'chat' };
   const finish = (raw: any[]) =>
-    raw.map((r) => normalizeEntry({ ...r, source: 'chat' }, fallback)).filter(Boolean) as Entry[];
+    (raw.map((r) => normalizeEntry({ ...r, source: 'chat' }, fallback)).filter(Boolean) as Entry[]).map((e) => withEstimate(e));
 
   const mode = await detectSortMode(settings);
   try {

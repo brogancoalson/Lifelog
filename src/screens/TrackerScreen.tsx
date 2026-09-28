@@ -151,17 +151,21 @@ export function TrackerScreen({ tracker, onBack }: { tracker: TrackerKey; onBack
 
   if (tracker === 'food') {
     format = (v) => `${v} meal${v === 1 ? '' : 's'}`;
-    const cal = list.reduce((a, e) => a + (e.calories ?? 0), 0);
-    const pro = list.reduce((a, e) => a + (e.protein ?? 0), 0);
-    const calDays = new Set(list.filter((e) => e.calories).map((e) => e.date)).size;
-    const proDays = new Set(list.filter((e) => e.protein).map((e) => e.date)).size;
+    // nutrition counts food and drinks (protein shakes, milk, soda...)
+    const intake = inRange(data.entries, start, today).filter((e) => e.category === 'food' || e.category === 'drink');
+    const cal = intake.reduce((a, e) => a + (e.calories ?? 0), 0);
+    const pro = intake.reduce((a, e) => a + (e.protein ?? 0), 0);
+    const carb = intake.reduce((a, e) => a + (e.carbs ?? 0), 0);
+    const nDays = new Set(intake.filter((e) => e.calories || e.protein || e.carbs).map((e) => e.date)).size;
+    const est = intake.some((e) => e.nutritionEstimated) ? '~' : '';
+    const perDayAvg = (v: number, unit: string) => (nDays ? `${est}${Math.round(v / nDays).toLocaleString('en-US')}${unit} a day, over ${nDays} day${nDays > 1 ? 's' : ''}` : 'log food to see this');
     stats = [
-      { label: 'Meals', value: String(list.length) },
-      { label: 'Per day', value: String(round1(list.length / days)), sub: `over ${days} days` },
+      { label: 'Meals', value: String(list.length), sub: `${round1(list.length / days)} per day` },
       { label: 'Days logged', value: `${perDay.length}/${days}` },
+      { label: 'Protein', value: pro ? `${est}${Math.round(pro)} g` : '—', sub: perDayAvg(pro, ' g') },
+      { label: 'Carbs', value: carb ? `${est}${Math.round(carb)} g` : '—', sub: perDayAvg(carb, ' g') },
+      { label: 'Calories', value: cal ? `${est}${Math.round(cal).toLocaleString('en-US')}` : '—', sub: perDayAvg(cal, '') },
       { label: 'Streak', value: daysText(streak(all, today)) },
-      { label: 'Calories', value: cal ? cal.toLocaleString('en-US') : '—', sub: calDays ? `${Math.round(cal / calDays)} avg on ${calDays} day${calDays > 1 ? 's' : ''}` : 'add them when you log' },
-      { label: 'Protein', value: pro ? `${pro} g` : '—', sub: proDays ? `${Math.round(pro / proDays)} g avg on ${proDays} day${proDays > 1 ? 's' : ''}` : 'add it when you log' },
     ];
     const top = topTexts(list);
     const maxCount = Math.max(1, ...top.map((k) => k.count));

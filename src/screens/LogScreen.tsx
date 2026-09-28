@@ -78,6 +78,9 @@ export function LogScreen() {
   const scroll = useRef<ScrollView>(null);
   const input = useRef<TextInput>(null);
   const [typing, setTyping] = useState(false);
+  // Swap the buttons back a moment after the keyboard closes, so the tap that closed it
+  // can't land on the + button that takes its place (matters on the web).
+  const blurTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const hideKeyboard = () => {
     input.current?.blur();
@@ -249,8 +252,14 @@ export function LogScreen() {
         )}
         <TextInput
           ref={input}
-          onFocus={() => setTyping(true)}
-          onBlur={() => setTyping(false)}
+          onFocus={() => {
+            if (blurTimer.current) clearTimeout(blurTimer.current);
+            setTyping(true);
+          }}
+          onBlur={() => {
+            if (blurTimer.current) clearTimeout(blurTimer.current);
+            blurTimer.current = setTimeout(() => setTyping(false), 300);
+          }}
           value={text}
           onChangeText={setText}
           placeholder="What did you do?"

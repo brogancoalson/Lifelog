@@ -23,8 +23,10 @@ export function entryDetails(e: Entry): string {
   if (e.amount !== undefined && !e.lifts?.length) parts.push(fmtAmount(e.amount, e.unit));
   if (e.kind && !e.text.toLowerCase().includes(e.kind)) parts.push(e.kind);
   if (e.minutes) parts.push(fmtMinutes(e.minutes));
-  if (e.calories) parts.push(`${e.calories} cal`);
-  if (e.protein) parts.push(`${e.protein}g protein`);
+  const est = e.nutritionEstimated ? '~' : '';
+  if (e.protein) parts.push(`${est}${e.protein}g protein`);
+  if (e.carbs) parts.push(`${est}${e.carbs}g carbs`);
+  if (e.calories) parts.push(`${est}${e.calories} cal`);
   if (e.mood) parts.push(`Mood: ${MOOD_LABELS[e.mood]}`);
   return parts.join(' · ');
 }

@@ -31,6 +31,8 @@ export interface Entry {
   kind?: string; // water, coffee, beer, run, client call...
   calories?: number;
   protein?: number; // grams
+  carbs?: number; // grams
+  nutritionEstimated?: boolean; // calories/protein/carbs are averages, not stated
   money?: number; // + made, - spent (USD)
   mood?: number; // 1-5
   lifts?: Lift[];
@@ -48,6 +50,7 @@ export type GoalField =
   | 'moneyOut'
   | 'calories'
   | 'protein'
+  | 'carbs'
   | 'manual';
 
 export interface Goal {

@@ -1,5 +1,6 @@
 import type { Category, Entry, Lift } from '../types';
 import { addDays, toDay, toTime, uid } from './dates';
+import { withEstimate } from './nutrition';
 
 /**
  * Offline "quick sort": a keyword-based parser used when AI sorting isn't
@@ -273,7 +274,7 @@ export function quickParse(message: string, now: Date = new Date()): Entry[] {
       prev.awardArea = 'fitness';
       continue;
     }
-    out.push(e);
+    out.push(withEstimate(e, chunk));
   }
   return out;
 }

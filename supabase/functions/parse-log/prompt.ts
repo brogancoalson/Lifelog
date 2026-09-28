@@ -21,7 +21,9 @@ Fields for each entry:
 - minutes: duration, if stated (convert hours to minutes)
 - amount + unit: quantity if stated (e.g. 32 + "oz", 2 + "miles"). For "2 bottles of water" use 33.8 + "oz".
 - kind: short lowercase type, e.g. "water", "coffee", "beer", "run", "client call", "trading"
-- calories, protein (grams): only if they stated them. Never guess.
+- calories, protein, carbs (grams): use their numbers if they gave them. Otherwise, for food and drinks, estimate typical
+  averages for the portion described (a "half pound burger" has a bigger patty than a plain burger; "large fries" more than fries)
+  and set "estimated": true. Water, black coffee, and zero-calorie drinks get no numbers.
 - money: positive number for money earned, negative for money spent (USD)
 - mood: 1-5 if they described how they felt (1 rough, 3 okay, 5 great)
 - lifts: for workouts, list each exercise as {name, weight (lbs), reps, sets}. "225 for 5" = weight 225, reps 5.
@@ -53,6 +55,8 @@ export const ENTRY_JSON_SCHEMA = {
           kind: { type: 'string' },
           calories: { type: 'number' },
           protein: { type: 'number' },
+          carbs: { type: 'number' },
+          estimated: { type: 'boolean' },
           money: { type: 'number' },
           mood: { type: 'number' },
           lifts: {

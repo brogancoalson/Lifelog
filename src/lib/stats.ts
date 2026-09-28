@@ -7,6 +7,7 @@ export interface DaySummary {
   meals: number;
   calories: number;
   protein: number;
+  carbs: number;
   workouts: number;
   activeMinutes: number;
   moneyIn: number;
@@ -37,6 +38,7 @@ export function summarize(entries: Entry[]): DaySummary {
     meals: 0,
     calories: 0,
     protein: 0,
+    carbs: 0,
     workouts: 0,
     activeMinutes: 0,
     moneyIn: 0,
@@ -50,10 +52,11 @@ export function summarize(entries: Entry[]): DaySummary {
       s.drinks += 1;
       if (isWater(e)) s.waterOz += toOz(e.amount ?? 0, e.unit ?? 'oz');
     }
-    if (e.category === 'food') {
-      s.meals += 1;
+    if (e.category === 'food') s.meals += 1;
+    if (e.category === 'food' || e.category === 'drink') {
       s.calories += e.calories ?? 0;
       s.protein += e.protein ?? 0;
+      s.carbs += e.carbs ?? 0;
     }
     if (e.category === 'workout') {
       s.workouts += 1;
@@ -93,7 +96,9 @@ export function goalProgress(goal: Goal, entries: Entry[], today: string): numbe
   for (const e of entries) {
     if (since && e.date < since) continue;
     if (e.date > today) continue;
-    if (goal.category && e.category !== goal.category) continue;
+    const nutritionGoal = goal.field === 'protein' || goal.field === 'carbs' || goal.field === 'calories';
+    // protein/carbs/calories goals count drinks too (protein shakes, milk)
+    if (goal.category && e.category !== goal.category && !(nutritionGoal && goal.category === 'food' && e.category === 'drink')) continue;
     if (goal.kind && e.kind !== goal.kind && !new RegExp(`\\b${escapeRe(goal.kind)}\\b`, 'i').test(e.text)) continue;
     switch (goal.field) {
       case 'count':
@@ -116,6 +121,9 @@ export function goalProgress(goal: Goal, entries: Entry[], today: string): numbe
         break;
       case 'protein':
         total += e.protein ?? 0;
+        break;
+      case 'carbs':
+        total += e.carbs ?? 0;
         break;
     }
   }

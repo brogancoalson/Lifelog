@@ -29,6 +29,7 @@ const FIELDS_FOR: Record<Category, { key: GoalField; label: string }[]> = {
   food: [
     { key: 'count', label: 'Meals' },
     { key: 'protein', label: 'Protein (g)' },
+    { key: 'carbs', label: 'Carbs (g)' },
     { key: 'calories', label: 'Calories' },
   ],
   drink: [

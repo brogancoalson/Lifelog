@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { AWARD_AREAS, AWARD_ORDER, CATEGORIES, CATEGORY_ORDER, MOOD_LABELS } from '../lib/categories';
 import { addDays, prettyDay, toDay, toTime, uid } from '../lib/dates';
+import { estimateNutrition } from '../lib/nutrition';
 import { normalizeEntry } from '../lib/storage';
 import { useStore } from '../lib/store';
 import { font, radius, space, useInsets, useTheme } from '../theme';
@@ -26,6 +27,7 @@ interface Form {
   kind: string;
   calories: string;
   protein: string;
+  carbs: string;
   money: string;
   moneyDir: 'in' | 'out';
   mood: number;
@@ -51,6 +53,7 @@ function toForm(e?: Entry, defaults?: Partial<Entry>): Form {
     kind: e?.kind ?? '',
     calories: s(e?.calories),
     protein: s(e?.protein),
+    carbs: s(e?.carbs),
     money: e?.money !== undefined ? s(Math.abs(e.money)) : '',
     moneyDir: e?.money !== undefined && e.money >= 0 ? 'in' : 'out',
     mood: e?.mood ?? 0,
@@ -113,9 +116,19 @@ export function EntryEditor({
       raw.unit = raw.amount !== undefined ? f.unit || undefined : undefined;
     }
     if (cat === 'drink' || cat === 'activity' || cat === 'business' || cat === 'money') raw.kind = f.kind;
-    if (cat === 'food') {
-      raw.calories = n(f.calories);
-      raw.protein = n(f.protein);
+    if (cat === 'food' || cat === 'drink') {
+      const typed = { calories: n(f.calories), protein: n(f.protein), carbs: n(f.carbs) };
+      const anyTyped = typed.calories !== undefined || typed.protein !== undefined || typed.carbs !== undefined;
+      const unchanged =
+        !!entry && typed.calories === entry.calories && typed.protein === entry.protein && typed.carbs === entry.carbs;
+      const textChanged = !!entry && f.text.trim() !== entry.text;
+      if (!anyTyped || (entry?.nutritionEstimated && unchanged && textChanged)) {
+        // nothing typed (or an old estimate for a changed description): estimate from what it is
+        const est = estimateNutrition(f.text);
+        if (est) Object.assign(raw, est, { nutritionEstimated: true });
+      } else {
+        Object.assign(raw, typed, { nutritionEstimated: entry?.nutritionEstimated && unchanged ? true : undefined });
+      }
     }
     if (cat === 'money' && moneyVal !== undefined) raw.money = f.moneyDir === 'in' ? moneyVal : -moneyVal;
     if (cat === 'mood' && f.mood) raw.mood = f.mood;
@@ -221,14 +234,24 @@ export function EntryEditor({
               </View>
             ) : null}
 
-            {cat === 'food' ? (
-              <View style={{ flexDirection: 'row', gap: 12 }}>
-                <View style={{ flex: 1 }}>
-                  <Field label="Calories (optional)" value={f.calories} onChangeText={(v) => set('calories', v)} keyboardType="number-pad" />
+            {cat === 'food' || cat === 'drink' ? (
+              <View style={{ gap: 8 }}>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  <View style={{ flex: 1 }}>
+                    <Field label="Calories" value={f.calories} onChangeText={(v) => set('calories', v)} keyboardType="number-pad" placeholder="auto" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Field label="Protein g" value={f.protein} onChangeText={(v) => set('protein', v)} keyboardType="number-pad" placeholder="auto" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Field label="Carbs g" value={f.carbs} onChangeText={(v) => set('carbs', v)} keyboardType="number-pad" placeholder="auto" />
+                  </View>
                 </View>
-                <View style={{ flex: 1 }}>
-                  <Field label="Protein g (optional)" value={f.protein} onChangeText={(v) => set('protein', v)} keyboardType="number-pad" />
-                </View>
+                <Body dim style={{ fontSize: 13 }}>
+                  {entry?.nutritionEstimated
+                    ? 'These are estimates from the description. Type your own numbers to replace them.'
+                    : 'Leave blank and they’re estimated from what you ate, like “half pound burger and fries.”'}
+                </Body>
               </View>
             ) : null}
 

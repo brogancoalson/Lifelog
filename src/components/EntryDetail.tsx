@@ -29,8 +29,10 @@ export function EntryDetail({ entry, onPress }: { entry: Entry; onPress: () => v
   if (entry.amount !== undefined) rows.push({ k: 'Amount', v: fmtAmount(entry.amount, entry.unit) });
   if (entry.kind) rows.push({ k: 'Type', v: entry.kind });
   if (entry.minutes) rows.push({ k: 'Duration', v: fmtMinutes(entry.minutes) });
-  if (entry.calories) rows.push({ k: 'Calories', v: String(entry.calories) });
-  if (entry.protein) rows.push({ k: 'Protein', v: `${entry.protein} g` });
+  const est = entry.nutritionEstimated ? ' (estimated)' : '';
+  if (entry.protein) rows.push({ k: 'Protein', v: `${entry.protein} g${est}` });
+  if (entry.carbs) rows.push({ k: 'Carbs', v: `${entry.carbs} g${est}` });
+  if (entry.calories) rows.push({ k: 'Calories', v: `${entry.calories}${est}` });
   if (typeof entry.money === 'number')
     rows.push({ k: entry.money >= 0 ? 'Made' : 'Spent', v: `${entry.money >= 0 ? '+' : '−'}${fmtMoney(entry.money)}`, color: entry.money >= 0 ? t.good : t.danger });
   if (entry.mood) rows.push({ k: 'Mood', v: `${entry.mood} of 5 · ${MOOD_LABELS[entry.mood]}` });

@@ -103,7 +103,7 @@ export function TodayScreen({
 
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm }}>
           <Stat onPress={() => onOpenTracker('water')} icon="water" color={CATEGORIES.drink.color} label="Water" value={`${s.waterOz} oz`} sub={s.drinks ? `${s.drinks} drink${s.drinks > 1 ? 's' : ''} logged` : undefined} />
-          <Stat onPress={() => onOpenTracker('food')} icon="restaurant" color={CATEGORIES.food.color} label="Meals" value={String(s.meals)} sub={s.protein ? `${s.protein}g protein` : s.calories ? `${s.calories} cal` : undefined} />
+          <Stat onPress={() => onOpenTracker('food')} icon="restaurant" color={CATEGORIES.food.color} label="Meals" value={String(s.meals)} sub={s.protein || s.carbs ? `${Math.round(s.protein)}g protein · ${Math.round(s.carbs)}g carbs` : s.calories ? `${Math.round(s.calories)} cal` : undefined} />
           <Stat
             onPress={() => onOpenTracker('workout')}
             icon="barbell"

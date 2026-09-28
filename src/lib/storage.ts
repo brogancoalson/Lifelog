@@ -56,6 +56,8 @@ export function normalizeEntry(raw: any, fallback: Partial<Entry> = {}): Entry |
     kind: str(raw.kind, 40)?.toLowerCase(),
     calories: num(raw.calories),
     protein: num(raw.protein),
+    carbs: num(raw.carbs),
+    nutritionEstimated: raw.nutritionEstimated === true || raw.estimated === true ? true : undefined,
     money: num(raw.money),
     mood: mood !== undefined ? Math.min(5, Math.max(1, Math.round(mood))) : undefined,
     lifts: lifts && lifts.length ? lifts : undefined,
@@ -75,7 +77,7 @@ function normalizeGoal(raw: any): Goal | null {
     target,
     unit: str(raw.unit, 20) ?? '',
     period: ['day', 'week', 'month', 'all'].includes(raw.period) ? raw.period : 'all',
-    field: ['count', 'minutes', 'amount', 'moneyIn', 'moneyOut', 'calories', 'protein', 'manual'].includes(raw.field)
+    field: ['count', 'minutes', 'amount', 'moneyIn', 'moneyOut', 'calories', 'protein', 'carbs', 'manual'].includes(raw.field)
       ? raw.field
       : 'manual',
     category: isCategory(raw.category) ? raw.category : undefined,
