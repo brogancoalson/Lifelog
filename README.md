@@ -8,7 +8,7 @@ Built with Expo (React Native), so the same code runs as an iPhone app (through 
 
 - **Today**: water, meals (protein/carbs), workouts, sleep, money, mood, award hours, trading P&L, free money. Tap any tile for a detailed page. History is the clock icon.
 - **Log**: a chat box. "Chicken and rice, 2 waters, benched 225 for 5, slept 7 hours" becomes separate entries. Nutrition is estimated from a built-in table of ~52,000 USDA foods with real portion weights.
-- **Money**: buckets (latte factor, groceries, gas, fun, insurance, or your own) with per-paycheck rules ($, %, or $/day). "I got paid" splits a paycheck in bucket order and shows what's left to spend freely. Spending auto-comes out of the matching bucket.
+- **Money**: buckets (latte factor, groceries, gas, fun, insurance, or your own) with rules: $ per paycheck, $ per day, or % of income (% buckets like the latte factor also take their cut of odd-job and gift money). "I got paid" splits a paycheck in bucket order and shows what's left to spend freely. Spending auto-comes out of the matching bucket.
 - **Trade**: a trading journal chat with screenshots, plus trades with P&L, win rate, and good/bad notes.
 - **Ask**: questions and advice from everything logged ("how was my sleep this week?", "what should I eat to hit my protein?", "which muscle groups am I neglecting?"). Uses an optional "About you" note from Settings. Needs a Claude API key.
 - **Goals**: Congressional Award tracker and your own goals. In Log, say where something counts ("read for an hour, goes towards personal", "2 hours for community service", "put it under physical fitness") and the hours land in that area.

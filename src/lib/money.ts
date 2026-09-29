@@ -3,7 +3,7 @@ import { uid } from './dates';
 
 export const FREE = 'free';
 
-/** Starter buckets. Latte factor = first hour of pay, every day, into retirement. */
+/** Starter buckets. Latte factor = 10% of all income, into retirement. */
 export function starterBuckets(): Bucket[] {
   const now = new Date().toISOString();
   const b = (name: string, rule: Bucket['rule'], value: number, kind: Bucket['kind'], keywords: string[]): Bucket => ({
@@ -16,7 +16,7 @@ export function starterBuckets(): Bucket[] {
     createdAt: now,
   });
   return [
-    b('Latte factor', 'daily', 20, 'save', ['latte factor', 'roth', 'ira', 'retirement']),
+    b('Latte factor', 'percent', 10, 'save', ['latte factor', 'roth', 'ira', 'retirement']),
     b('Groceries', 'fixed', 0, 'spend', ['grocery', 'groceries', 'safeway', 'walmart', 'costco', 'trader joe', 'save mart', 'raley', 'winco', 'food 4 less']),
     b('Gas', 'fixed', 0, 'spend', ['gas', 'fuel', 'shell', 'chevron', 'arco', 'valero', '76', 'exxon']),
     b('Fun', 'fixed', 0, 'spend', ['fun', 'movie', 'movies', 'concert', 'game', 'games', 'golf', 'bowling', 'date', 'restaurant', 'eating out']),
@@ -31,7 +31,7 @@ export function grossPaycheck(pay: PaySettings): number {
 
 export function ruleText(b: Bucket, pay: PaySettings): string {
   if (b.rule === 'daily') return `$${fmt(b.value)}/day × ${pay.periodDays} days = $${fmt(b.value * pay.periodDays)} per paycheck`;
-  if (b.rule === 'percent') return `${fmt(b.value)}% of each paycheck`;
+  if (b.rule === 'percent') return `${fmt(b.value)}% of all money that comes in`;
   return b.value ? `$${fmt(b.value)} per paycheck` : 'Set an amount per paycheck';
 }
 

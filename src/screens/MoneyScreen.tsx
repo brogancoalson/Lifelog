@@ -46,7 +46,9 @@ function IncomeSheet({ visible, onClose }: { visible: boolean; onClose: () => vo
 
   const amt = parse(amount);
   const valid = Number.isFinite(amt) && amt > 0;
-  const plan = useMemo(() => (valid && split ? planSplit(amt, data.buckets, pay) : { allocations: [], short: {} as Record<string, number> }), [amt, valid, split, data.buckets, pay]);
+  // a paycheck fills every bucket; other money (odd jobs, gifts) only fills the "% of income" ones, like the latte factor
+  const splitBuckets = useMemo(() => (kind === 'paycheck' ? data.buckets : data.buckets.filter((b) => b.rule === 'percent')), [kind, data.buckets]);
+  const plan = useMemo(() => (valid && split ? planSplit(amt, splitBuckets, pay) : { allocations: [], short: {} as Record<string, number> }), [amt, valid, split, splitBuckets, pay]);
 
   const allocFor = (b: Bucket) => {
     if (custom[b.id] !== undefined) return Math.max(0, parse(custom[b.id]) || 0);
@@ -92,7 +94,7 @@ function IncomeSheet({ visible, onClose }: { visible: boolean; onClose: () => vo
           selected={kind === 'other'}
           onPress={() => {
             setKind('other');
-            setSplit(false);
+            setSplit(data.buckets.some((b) => b.rule === 'percent'));
             setAmount('');
           }}
         />
@@ -234,7 +236,7 @@ function BucketEditor({ visible, bucket, onClose }: { visible: boolean; bucket?:
         <Label>Each paycheck it gets</Label>
         <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
           <Chip label="Dollar amount" selected={rule === 'fixed'} onPress={() => setRule('fixed')} />
-          <Chip label="% of paycheck" selected={rule === 'percent'} onPress={() => setRule('percent')} />
+          <Chip label="% of income" selected={rule === 'percent'} onPress={() => setRule('percent')} />
           <Chip label="$ per day" selected={rule === 'daily'} onPress={() => setRule('daily')} />
         </View>
         <Field
