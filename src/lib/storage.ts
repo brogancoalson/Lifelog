@@ -5,6 +5,9 @@ import { isValidDay, toDay, toTime, uid } from './dates';
 
 const KEY = 'lifelog:data:v1';
 
+/** What Brogan trades; used when a trade doesn't name a symbol. */
+export const DEFAULT_SYMBOL = 'MNQ';
+
 export const DEFAULT_PAY = { hourly: 20, hoursPerDay: 5, daysPerWeek: 4, periodDays: 14 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -136,7 +139,7 @@ export function normalizeTrade(raw: any, fallback: Partial<Trade> = {}): Trade |
     id: str(raw.id, 40) ?? uid(),
     date: isValidDay(raw.date) ? raw.date : fallback.date ?? toDay(),
     time: time ?? fallback.time,
-    symbol: (str(raw.symbol, 16) ?? fallback.symbol ?? 'MES').toUpperCase(),
+    symbol: (str(raw.symbol, 16) ?? fallback.symbol ?? DEFAULT_SYMBOL).toUpperCase(),
     direction: raw.direction === 'long' || raw.direction === 'short' ? raw.direction : undefined,
     contracts: num(raw.contracts),
     entry: num(raw.entry),

@@ -2,7 +2,7 @@ import type { AppData, ChatMessage, Trade } from '../types';
 import { sampler } from './aiParse';
 import { callClaude, MODEL_SMART, textOf, type ContentBlock, type Msg } from './claude';
 import { addDays, toDay, toTime, uid } from './dates';
-import { normalizeTrade } from './storage';
+import { DEFAULT_SYMBOL, normalizeTrade } from './storage';
 
 /**
  * Trading journal: turn what the person wrote (and any screenshots) into a trade entry,
@@ -15,7 +15,7 @@ export const TRADE_SCHEMA = {
     is_trade: { type: 'boolean', description: 'true if this message describes a trade or a trading session to journal; false for a question' },
     date: { type: 'string', description: 'YYYY-MM-DD, default today' },
     time: { type: 'string', description: 'HH:MM 24h if stated' },
-    symbol: { type: 'string', description: 'e.g. MES, ES, NQ, MNQ. Default MES.' },
+    symbol: { type: 'string', description: `e.g. MNQ, NQ, MES, ES. Default ${DEFAULT_SYMBOL}.` },
     direction: { type: 'string', enum: ['long', 'short'] },
     contracts: { type: 'number' },
     entry: { type: 'number', description: 'entry price' },
@@ -37,7 +37,7 @@ function systemPrompt(recent: Trade[]): string {
     .slice(-15)
     .map((t) => `${t.date} ${t.symbol} ${t.direction ?? ''} ${t.pnl !== undefined ? `$${t.pnl}` : ''} ${t.setup ?? ''} | good: ${t.good ?? '-'} | bad: ${t.bad ?? '-'}`)
     .join('\n');
-  return `You are the trading journal inside Lifelog. The user trades futures (mostly MES) on a funded prop firm account.
+  return `You are the trading journal inside Lifelog. The user trades futures (mostly ${DEFAULT_SYMBOL}, micro Nasdaq, $2 per point) on a funded prop firm account.
 Today is ${today}. When they describe a trade or session, pull out the details they gave (never invent prices or P&L) and save it.
 If screenshots are attached, read the chart: the setup, where the entry and exit look to be, and the market context, and include what you see in "notes".
 Reply briefly and honestly like a disciplined trading coach: one specific observation (risk, discipline, rule-following, emotion) and one follow-up question. No hype, no financial advice about what to trade next.
@@ -45,12 +45,12 @@ Recent trades for context:
 ${lines || '(none yet)'}`;
 }
 
-/** Offline parse: "long MES 2 contracts +$150, took the ORB, good patience, bad: moved my stop" */
+/** Offline parse: "long MNQ 2 contracts +$150, took the ORB, good patience, bad: moved my stop" */
 export function quickTrade(text: string, now = new Date()): Partial<Trade> {
   const t = text.toLowerCase();
   const out: Partial<Trade> = {};
   const sym = text.match(/\b(MES|ES|MNQ|NQ|MYM|YM|M2K|RTY|CL|MCL|GC|MGC|SPY|QQQ)\b/i);
-  out.symbol = sym ? sym[1].toUpperCase() : 'MES';
+  out.symbol = sym ? sym[1].toUpperCase() : DEFAULT_SYMBOL;
   if (/\b(long|bought|buy|went long)\b/.test(t)) out.direction = 'long';
   else if (/\b(short|sold short|shorted|went short)\b/.test(t)) out.direction = 'short';
   const ct = t.match(/(\d+)\s*(contracts?|cons?|lots?|micros?)\b/);
@@ -83,7 +83,7 @@ export async function journalMessage(
   data: AppData,
 ): Promise<JournalResult> {
   const now = new Date();
-  const fallback: Partial<Trade> = { date: toDay(now), time: toTime(now), symbol: 'MES' };
+  const fallback: Partial<Trade> = { date: toDay(now), time: toTime(now), symbol: DEFAULT_SYMBOL };
   const build = (raw: any) =>
     normalizeTrade({ ...raw, id: uid(), images: images.map((i) => i.id), notes: raw.notes || text, source: 'chat' }, fallback) ?? undefined;
 

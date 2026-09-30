@@ -8,6 +8,7 @@ import { addDays, parseDay, prettyDay, toDay, toTime, uid } from '../lib/dates';
 import { deleteImage, pickImages, useImageUri } from '../lib/imageStore';
 import { journalMessage, tradeStats } from '../lib/journal';
 import { fmtMoney } from '../lib/stats';
+import { DEFAULT_SYMBOL } from '../lib/storage';
 import { useStore } from '../lib/store';
 import { RANGES, rangeStart, type Bucket, type RangeKey } from '../lib/trackers';
 import { font, space, useInsets, useTheme } from '../theme';
@@ -47,7 +48,7 @@ function TradeEditor({ visible, trade, onClose }: { visible: boolean; trade?: Tr
     if (token) {
       const s = (v?: number) => (v === undefined ? '' : String(v));
       setF({
-        symbol: trade?.symbol ?? 'MES',
+        symbol: trade?.symbol ?? DEFAULT_SYMBOL,
         contracts: s(trade?.contracts),
         entry: s(trade?.entry),
         exit: s(trade?.exit),
@@ -75,7 +76,7 @@ function TradeEditor({ visible, trade, onClose }: { visible: boolean; trade?: Tr
       createdAt: trade?.createdAt ?? new Date().toISOString(),
       date,
       time: trade?.time ?? (date === toDay() ? toTime() : undefined),
-      symbol: (f.symbol || 'MES').toUpperCase(),
+      symbol: (f.symbol || DEFAULT_SYMBOL).toUpperCase(),
       direction: dir,
       contracts: num(f.contracts),
       entry: num(f.entry),
@@ -298,8 +299,8 @@ function TradesList() {
 
 // ---------------------------------------------------------------------------
 const JOURNAL_EXAMPLES = [
-  'Long MES 2 contracts off the opening range breakout, took +$150. Good: waited for the retest. Bad: exited early.',
-  'Shorted MES at the VWAP rejection, stopped out −$60. Chased it after missing the first entry.',
+  'Long MNQ 2 contracts off the opening range breakout, took +$150. Good: waited for the retest. Bad: exited early.',
+  'Shorted MNQ at the VWAP rejection, stopped out −$60. Chased it after missing the first entry.',
   'No trades today. Market was choppy and I stuck to my rules.',
 ];
 
@@ -320,7 +321,7 @@ function Journal({ onOpenTrade }: { onOpenTrade: (t: Trade) => void }) {
     } catch (e: any) {
       // never lose what they wrote: save it as a plain journal entry
       const now = new Date();
-      const tr: Trade = { id: uid(), date: toDay(now), time: toTime(now), symbol: 'MES', notes: text, images: images.map((i) => i.id), createdAt: now.toISOString(), source: 'chat' };
+      const tr: Trade = { id: uid(), date: toDay(now), time: toTime(now), symbol: DEFAULT_SYMBOL, notes: text, images: images.map((i) => i.id), createdAt: now.toISOString(), source: 'chat' };
       upsertTrade(tr);
       addChat({ role: 'app', text: `${e?.message ?? 'Claude didn’t answer.'} I saved what you wrote to your journal anyway.`, tradeIds: [tr.id] }, 'tradeChat');
     }
