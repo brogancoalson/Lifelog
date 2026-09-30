@@ -60,7 +60,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         }
         // Sept 30: food estimates were double counting fillings ("burrito with chicken, rice and beans") and
         // "a bowl of" anything. Redo the numbers the app estimated (never ones typed in), once.
-        if (!d.settings.estimatesV2) {
+        if (!d.settings.estimatesV3) {
           d = {
             ...d,
             entries: d.entries.map((e) => {
@@ -72,7 +72,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
               const est = estimateNutrition(e.text);
               return est ? { ...e, ...est } : e;
             }),
-            settings: { ...d.settings, estimatesV2: true },
+            settings: { ...d.settings, estimatesV3: true },
           };
         }
         setData(d);

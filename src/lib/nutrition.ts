@@ -26,6 +26,8 @@ interface Food {
   perOz?: Nutrition;
   /** default ounces when no weight is given */
   defOz?: number;
+  /** ounces in one piece, so "2 chicken thighs" is 6 oz and "2 chicken breasts" is 12 */
+  unitOz?: number;
   /** measured in servings, not pieces: "a few chips" is a small serving, not 3 bags */
   bulk?: boolean;
 }
@@ -90,18 +92,29 @@ const FOODS: Food[] = [
   { names: ['beef jerky', 'jerky'], per: n(115, 15, 5), def: 1 },
   { names: ['egg whites', 'egg white'], per: n(126, 26, 2), def: 1 },
   { names: ['eggs', 'egg', 'omelette', 'omelet', 'scrambled eggs'], per: n(72, 6, 0.4), def: 2 },
-  { names: ['steak', 'sirloin', 'ribeye', 'filet'], per: n(0, 0, 0), def: 1, perOz: n(65, 8, 0), defOz: 8 },
+  // sausages by kind (per link or patty); the generic one is in the middle of breakfast links and dinner sausages
+  { names: ['chicken apple sausage', 'chicken sausage'], per: n(150, 13, 3), def: 1 },
+  { names: ['bratwurst', 'brat'], per: n(280, 12, 2), def: 1 },
+  { names: ['polish sausage', 'kielbasa', 'smoked sausage'], per: n(290, 12, 2), def: 1 },
+  { names: ['italian sausage'], per: n(290, 16, 3), def: 1 },
+  { names: ['hot link', 'andouille'], per: n(250, 10, 3), def: 1 },
+  { names: ['sausage patty', 'sausage patties'], per: n(200, 9, 1), def: 1 },
+  { names: ['summer sausage'], per: n(170, 7, 1), def: 1 },
+  { names: ['breakfast sausage', 'sausage link'], per: n(90, 4, 0.5), def: 2 },
+  { names: ['links'], per: n(90, 4, 0.5), def: 2 },
+  { names: ['sausages', 'sausage'], per: n(150, 7, 1), def: 2 },
+  { names: ['steak', 'sirloin', 'ribeye', 'filet'], per: n(0, 0, 0), def: 1, perOz: n(65, 8, 0), defOz: 8, unitOz: 8 },
   { names: ['ground beef', 'beef'], per: n(0, 0, 0), def: 1, perOz: n(77, 7.3, 0), defOz: 4 },
-  { names: ['chicken breast', 'chicken thigh', 'grilled chicken', 'chicken'], per: n(0, 0, 0), def: 1, perOz: n(47, 8.8, 0), defOz: 6 },
+  { names: ['chicken thigh', 'thigh', 'drumstick', 'chicken leg'], per: n(0, 0, 0), def: 1, perOz: n(55, 7, 0), defOz: 6, unitOz: 3 },
+  { names: ['chicken breast', 'grilled chicken', 'chicken'], per: n(0, 0, 0), def: 1, perOz: n(47, 8.8, 0), defOz: 6, unitOz: 6 },
   { names: ['turkey'], per: n(0, 0, 0), def: 1, perOz: n(40, 7, 0.5), defOz: 4 },
   { names: ['salmon'], per: n(0, 0, 0), def: 1, perOz: n(58, 6.3, 0), defOz: 6 },
   { names: ['tuna'], per: n(0, 0, 0), def: 1, perOz: n(30, 6.5, 0), defOz: 5 },
   { names: ['shrimp'], per: n(0, 0, 0), def: 1, perOz: n(30, 6, 0.3), defOz: 4 },
   { names: ['fish', 'tilapia', 'cod'], per: n(0, 0, 0), def: 1, perOz: n(37, 7.3, 0), defOz: 6 },
-  { names: ['pork chop', 'pork'], per: n(0, 0, 0), def: 1, perOz: n(55, 7.3, 0), defOz: 6 },
+  { names: ['pork chop', 'pork'], per: n(0, 0, 0), def: 1, perOz: n(55, 7.3, 0), defOz: 6, unitOz: 6 },
   { names: ['ham'], per: n(0, 0, 0), def: 1, perOz: n(46, 6, 0.7), defOz: 3 },
-  { names: ['bacon'], per: n(43, 3, 0), def: 3 },
-  { names: ['sausage', 'sausages', 'links'], per: n(90, 4, 0.5), def: 2 },
+  { names: ['strips of bacon', 'slices of bacon', 'bacon strips', 'bacon'], per: n(43, 3, 0), def: 3 },
   { names: ['tofu'], per: n(180, 20, 4), def: 1 },
   { names: ['beans', 'black beans', 'refried beans'], per: n(230, 15, 40), def: 1 },
 
@@ -190,7 +203,7 @@ function sizeFactor(part: string): number {
 
 /** A count right before the food name: "3 eggs", "two slices of pizza", "10 wings". */
 function countBefore(part: string, name: string): number | null {
-  const m = part.match(new RegExp(`\\b(\\d+(?:\\.\\d+)?|${Object.keys(WORD_NUMS).join('|')})\\s+(?:(?:slices?|pieces?|pcs?|scoops?|servings?|cups?|bowls?|cans?|bottles?|glasses?|strips?|of|large|small|big|scrambled|fried|boiled|hard boiled)\\s+)*${esc(name)}\\b`));
+  const m = part.match(new RegExp(`\\b(\\d+(?:\\.\\d+)?|${Object.keys(WORD_NUMS).join('|')})\\s+(?:(?:slices?|pieces?|pcs?|scoops?|servings?|cups?|bowls?|cans?|bottles?|glasses?|strips?|links?|patties|of|large|small|big|scrambled|fried|boiled|hard boiled|grilled|baked|breakfast)\\s+)*${esc(name)}(?:s|es)?\\b`));
   if (!m) return null;
   const v = m[1];
   return /^\d/.test(v) ? parseFloat(v) : WORD_NUMS[v] ?? null;
@@ -297,8 +310,9 @@ export function estimateNutrition(text: string): Nutrition | null {
     let curatedDish = false;
     const consumed: string[] = [];
     for (const food of FOODS) {
-      const name = food.names.find((nm) => new RegExp(`\\b${esc(nm)}\\b`).test(part));
+      const name = food.names.find((nm) => new RegExp(`\\b${esc(nm)}(?:s|es)?\\b`).test(part));
       if (!name) continue;
+      const said = part.match(new RegExp(`\\b${esc(name)}(?:s|es)?\\b`))![0];
       consumed.push(name);
       if (food.dish || food.names.includes('burger')) curatedDish = true;
       let v: Nutrition;
@@ -308,14 +322,15 @@ export function estimateNutrition(text: string): Nutrition | null {
         const c = countBefore(part, name);
         if (c && c > 1) v = { calories: v.calories * c, protein: v.protein * c, carbs: v.carbs * c };
       } else if (food.perOz) {
-        const oz = ouncesIn(part) ?? (food.defOz ?? 4) * sizeFactor(part) * (salad ? 0.67 : 1);
+        const pieces = food.unitOz ? countBefore(part, name) : null;
+        const oz = ouncesIn(part) ?? (pieces ? pieces * food.unitOz! : (food.defOz ?? 4) * sizeFactor(part) * (salad ? 0.67 : 1));
         v = add(n(0, 0, 0), food.perOz, oz);
       } else {
         let c = countBefore(part, name);
         // "a few chips", "a little rice": a small serving, not three of them
         if (food.bulk && /\b(a few|few|a handful of|handful of|a little|little bit of|a bit of|some)\b/.test(part) && (c === null || c === 3)) c = 0.5;
         // "cookie" (not "cookies"), "slice of pizza": one
-        if (c === null && !/s$/.test(name) && food.names.some((x) => x === `${name}s` || x === `${name}es`)) c = 1;
+        if (c === null && said === name && (food.names.includes(`${name}s`) || food.names.includes(`${name}es`))) c = 1;
         if (c === null && /\bslice of\b/.test(part)) c = 1;
         const count = c ?? food.def;
         v = add(n(0, 0, 0), food.per, count * (c !== null ? 1 : sizeFactor(part)));
@@ -324,7 +339,7 @@ export function estimateNutrition(text: string): Nutrition | null {
       partTotal = partTotal ? add(partTotal, v) : v;
       if (food.dish) break;
       // don't match the same words twice ("egg whites" then "egg")
-      part = part.replace(new RegExp(`\\b${esc(name)}\\b`), ' ');
+      part = part.replace(new RegExp(`\\b${esc(name)}(?:s|es)?\\b`), ' ');
     }
     // The USDA table (52k foods) catches everything the short list doesn't,
     // and wins when it matches more of the description ("chicken tikka masala", "big mac").

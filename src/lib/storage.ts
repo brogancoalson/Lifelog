@@ -204,7 +204,7 @@ export function normalizeData(raw: any): AppData {
     freeStart: num(s.freeStart),
     bucketsSeeded: s.bucketsSeeded === true,
     latte100: s.latte100 === true,
-    estimatesV2: s.estimatesV2 === true,
+    estimatesV3: s.estimatesV3 === true,
     award: {
       level: str(a.level, 40) ?? base.settings.award.level,
       targets: {
