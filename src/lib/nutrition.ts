@@ -26,6 +26,8 @@ interface Food {
   perOz?: Nutrition;
   /** default ounces when no weight is given */
   defOz?: number;
+  /** measured in servings, not pieces: "a few chips" is a small serving, not 3 bags */
+  bulk?: boolean;
 }
 
 const n = (calories: number, protein: number, carbs: number): Nutrition => ({ calories, protein, carbs });
@@ -45,6 +47,15 @@ const FOODS: Food[] = [
   { names: ['premier protein', 'premier shake'], per: n(160, 30, 5), def: 1, dish: true },
   { names: ['muscle milk'], per: n(160, 25, 9), def: 1, dish: true },
   { names: ['ghost energy', 'bang energy', 'c4 energy', 'alani nu', 'celsius', 'zero sugar monster', 'monster zero'], per: n(10, 0, 2), def: 1, dish: true },
+  { names: ['acai bowl', 'açaí bowl', 'smoothie bowl'], per: n(500, 8, 90), def: 1, dish: true },
+  { names: ['egg mcmuffin', 'mcmuffin', 'sausage mcmuffin'], per: n(310, 17, 30), def: 1, dish: true },
+  { names: ['double double', 'double-double'], per: n(610, 34, 41), def: 1, dish: true },
+  { names: ['costco hot dog'], per: n(550, 20, 46), def: 1, dish: true },
+  { names: ['panda express', 'panda plate'], per: n(900, 35, 100), def: 1, dish: true },
+  { names: ['blt'], per: n(400, 15, 30), def: 1, dish: true },
+  { names: ['cup noodles', 'cup of noodles', 'instant ramen', 'top ramen', 'maruchan', 'ramen noodles'], per: n(290, 6, 38), def: 1, dish: true },
+  { names: ['cinnamon roll', 'cinnamon rolls'], per: n(420, 7, 60), def: 1, dish: true },
+  { names: ['pop tarts', 'pop tart', 'poptart', 'poptarts'], per: n(200, 2, 37), def: 1, dish: true },
   { names: ['burrito bowl', 'chipotle bowl', 'poke bowl', 'rice bowl', 'chipotle', 'bowl'], per: n(700, 40, 75), def: 1, dish: true },
   { names: ['breakfast burrito'], per: n(600, 28, 50), def: 1, dish: true },
   { names: ['burrito'], per: n(800, 40, 90), def: 1, dish: true },
@@ -70,7 +81,8 @@ const FOODS: Food[] = [
   { names: ['pancakes', 'pancake'], per: n(120, 3, 20), def: 3, dish: true },
   { names: ['waffles', 'waffle'], per: n(200, 5, 25), def: 2, dish: true },
   { names: ['french toast'], per: n(150, 5, 18), def: 3, dish: true },
-  { names: ['cereal'], per: n(300, 10, 55), def: 1, dish: true },
+  // a normal bowl, milk included
+  { names: ['cereal'], per: n(250, 8, 45), def: 1, dish: true, bulk: true },
   { names: ['oatmeal', 'oats', 'overnight oats'], per: n(160, 6, 28), def: 1, dish: true },
   { names: ['soup', 'chili'], per: n(300, 15, 30), def: 1, dish: true },
 
@@ -94,28 +106,32 @@ const FOODS: Food[] = [
   { names: ['beans', 'black beans', 'refried beans'], per: n(230, 15, 40), def: 1 },
 
   // --- carbs and sides ---
-  { names: ['french fries', 'fries', 'tater tots', 'hash browns'], per: n(380, 5, 48), def: 1 },
+  { names: ['french fries', 'fries', 'tater tots'], per: n(380, 5, 48), def: 1, bulk: true },
+  { names: ['hash browns', 'hash brown'], per: n(150, 1.5, 16), def: 1 },
   { names: ['sweet potato'], per: n(110, 2, 26), def: 1 },
   { names: ['mashed potatoes', 'baked potato', 'potatoes', 'potato'], per: n(200, 4, 37), def: 1 },
-  { names: ['brown rice', 'white rice', 'rice'], per: n(205, 4, 45), def: 1 },
-  { names: ['pasta', 'noodles'], per: n(400, 14, 80), def: 1 },
+  { names: ['brown rice', 'white rice', 'rice'], per: n(205, 4, 45), def: 1, bulk: true },
+  { names: ['pasta', 'noodles'], per: n(400, 14, 80), def: 1, bulk: true },
   { names: ['bagel'], per: n(280, 11, 55), def: 1 },
   { names: ['toast', 'bread', 'slice of bread'], per: n(80, 3, 14), def: 2 },
   { names: ['english muffin', 'muffin'], per: n(350, 5, 50), def: 1 },
   { names: ['tortilla', 'tortillas'], per: n(140, 4, 24), def: 1 },
-  { names: ['chips', 'tortilla chips'], per: n(150, 2, 16), def: 2 },
-  { names: ['crackers'], per: n(130, 2, 20), def: 1 },
-  { names: ['granola'], per: n(300, 7, 45), def: 1 },
+  { names: ['bag of chips', 'chips', 'tortilla chips'], per: n(150, 2, 16), def: 1, bulk: true },
+  { names: ['pretzels'], per: n(110, 3, 23), def: 1, bulk: true },
+  { names: ['popcorn'], per: n(150, 3, 18), def: 1, bulk: true },
+  { names: ['crackers'], per: n(130, 2, 20), def: 1, bulk: true },
+  { names: ['granola bar', 'granola bars'], per: n(190, 3, 29), def: 1 },
+  { names: ['granola'], per: n(300, 7, 45), def: 1, bulk: true },
 
   // --- dairy / snacks ---
   { names: ['greek yogurt'], per: n(130, 17, 8), def: 1 },
   { names: ['yogurt'], per: n(150, 6, 22), def: 1 },
   { names: ['cottage cheese'], per: n(180, 24, 10), def: 1 },
-  { names: ['string cheese', 'cheese'], per: n(110, 7, 1), def: 1 },
+  { names: ['string cheese'], per: n(80, 7, 1), def: 1 },
+  { names: ['cheese'], per: n(110, 7, 1), def: 1 },
   { names: ['protein bar'], per: n(200, 20, 22), def: 1 },
-  { names: ['granola bar'], per: n(190, 3, 29), def: 1 },
   { names: ['peanut butter'], per: n(190, 7, 7), def: 1 },
-  { names: ['almonds', 'nuts', 'cashews', 'peanuts', 'trail mix'], per: n(170, 6, 7), def: 1 },
+  { names: ['almonds', 'nuts', 'cashews', 'peanuts', 'trail mix'], per: n(170, 6, 7), def: 1, bulk: true },
 
   // --- fruit / veg ---
   { names: ['banana'], per: n(105, 1.3, 27), def: 1 },
@@ -123,14 +139,17 @@ const FOODS: Food[] = [
   { names: ['orange'], per: n(62, 1.2, 15), def: 1 },
   { names: ['berries', 'strawberries', 'blueberries', 'grapes'], per: n(70, 1, 17), def: 1 },
   { names: ['avocado', 'guacamole'], per: n(120, 1.5, 6), def: 1 },
-  { names: ['salad'], per: n(150, 3, 10), def: 1 },
+  { names: ['caesar salad'], per: n(350, 8, 15), def: 1 },
+  { names: ['side salad'], per: n(100, 3, 8), def: 1 },
+  { names: ['salad'], per: n(150, 3, 10), def: 1, bulk: true },
   { names: ['broccoli', 'vegetables', 'veggies', 'green beans', 'asparagus', 'spinach', 'corn', 'carrots'], per: n(55, 3, 11), def: 1 },
 
   // --- sweets ---
-  { names: ['ice cream'], per: n(270, 5, 32), def: 1 },
+  { names: ['ice cream'], per: n(270, 5, 32), def: 1, bulk: true },
   { names: ['cookies', 'cookie'], per: n(150, 2, 20), def: 2 },
   { names: ['donut', 'doughnut', 'donuts'], per: n(260, 3, 31), def: 1 },
-  { names: ['brownie', 'cake', 'cupcake', 'pie'], per: n(350, 4, 50), def: 1 },
+  { names: ['brownie', 'brownies'], per: n(230, 3, 30), def: 1 },
+  { names: ['cake', 'cupcake', 'pie'], per: n(350, 4, 50), def: 1, bulk: true },
   { names: ['candy bar', 'candy', 'chocolate'], per: n(230, 3, 30), def: 1 },
 
   // --- drinks ---
@@ -166,7 +185,6 @@ function sizeFactor(part: string): number {
   if (/\b(huge|giant|massive|xl|extra large)\b/.test(part)) return 1.8;
   if (/\b(large|big|lg)\b/.test(part)) return 1.4;
   if (/\b(small|little|sm|snack size|mini)\b/.test(part)) return 0.65;
-  if (/\bhalf (a|an|of)\b/.test(part)) return 0.5;
   return 1;
 }
 
@@ -189,6 +207,27 @@ function ouncesIn(part: string): number | null {
   if (/\b(quarter[- ]?pound|1\/4\s*(lb|pound)|quarter pounder)/.test(part)) return 4;
   if (/\bpound of\b|\ba pound\b/.test(part)) return 16;
   return null;
+}
+
+const scale = (a: Nutrition, k: number): Nutrition => ({ calories: a.calories * k, protein: a.protein * k, carbs: a.carbs * k });
+
+/** Dishes that come with their fillings: listing the fillings shouldn't add them again. */
+const CONTAINER = /\b(burritos?|bowls?|sandwich(?:es)?|subs?|hoagies?|paninis?|wraps?|footlongs?|tacos?|quesadillas?|pizzas?|nachos|burgers?|cheeseburgers?|hamburgers?|smashburgers?|chipotle|blt|double double)\b/;
+const FILLINGS = new Set(
+  (
+    'chicken steak beef ground turkey ham pork carnitas barbacoa sofritas pastor al carne asada fish shrimp tuna meat meats ' +
+    'rice white brown cilantro lime beans black pinto refried cheese cheddar mozzarella pepper jack swiss american provolone queso ' +
+    'lettuce tomato tomatoes onion onions peppers fajita veggies vegetables corn salsa pico gallo de guac guacamole avocado sour cream ' +
+    'sauce ranch mayo mustard ketchup dressing aioli pepperoni sausage mushrooms olives jalapenos jalapeños pineapple egg eggs bacon spinach ' +
+    'pickles bbq hot buffalo teriyaki grilled crispy fried shredded toppings everything works the'
+  ).split(' '),
+);
+const MILKS = new Set('milk whole skim almond oat 2% fairlife'.split(' '));
+const FILLER_WORDS = new Set('a an some with and of on it my lots lot light little bit no plus extra double homemade leftover leftovers fresh spicy seasoned baked roasted smoked marinated plain'.split(' '));
+/** True when every word of the part is a filling (or filler like "some"): "chicken, rice and beans". */
+function isOnly(part: string, set: Set<string>): boolean {
+  const words = part.toLowerCase().replace(/[^a-z0-9%ñé&\s]/g, ' ').split(/\s+/).filter((w) => w && !FILLER_WORDS.has(w));
+  return words.length > 0 && words.every((w) => set.has(w));
 }
 
 function add(a: Nutrition, b: Nutrition, k = 1): Nutrition {
@@ -229,6 +268,13 @@ export function estimateNutrition(text: string): Nutrition | null {
     .replace(/\bmac (and|n|&) cheese\b/g, 'mac and cheese')
     .replace(/\bpeanut butter (and|&) jelly\b/g, 'pb&j')
     .replace(/\bbiscuits (and|&) gravy\b/g, 'biscuits and gravy');
+  // "a bowl of cereal", "a big plate of pasta" -> the food itself (the size word stays)
+  s = s.replace(/\b(?:(?:a|one|1)\s+)?(big |large |small |little |huge )?(?:bowl|plate|serving|helping)s?\s+of\s+/g, (_m, size) => size ?? ' ');
+  // A dish described with what's in it ("burrito with chicken, rice and beans") is one dish:
+  // its fillings are already in its numbers, so they aren't added again.
+  const container = CONTAINER.test(s);
+  const cereal = /\bcereal\b/.test(s);
+  const salad = /\bsalad\b/.test(s);
   const protectedDish = ['mac and cheese', 'biscuits and gravy'];
   let tmp = s;
   protectedDish.forEach((d, i) => (tmp = tmp.split(d).join(`__dish${i}__`)));
@@ -244,6 +290,8 @@ export function estimateNutrition(text: string): Nutrition | null {
   let total: Nutrition | null = null;
   for (const raw0 of parts) {
     const raw = raw0.replace(/\b(for|as)\s+(my\s+)?(breakfast|lunch|dinner|brunch|a snack|snack|dessert|pre-workout|post-workout)\b/g, ' ').trim();
+    if (container && isOnly(raw, FILLINGS)) continue;
+    if (cereal && isOnly(raw, MILKS)) continue;
     let part = ` ${raw} `;
     let partTotal: Nutrition | null = null;
     let curatedDish = false;
@@ -255,16 +303,24 @@ export function estimateNutrition(text: string): Nutrition | null {
       if (food.dish || food.names.includes('burger')) curatedDish = true;
       let v: Nutrition;
       if (food.names.includes('burger')) {
-        v = burger(part);
+        // toppings named anywhere in the description ("burger with bacon and cheese") go on the burger once
+        v = burger(s);
         const c = countBefore(part, name);
         if (c && c > 1) v = { calories: v.calories * c, protein: v.protein * c, carbs: v.carbs * c };
       } else if (food.perOz) {
-        const oz = ouncesIn(part) ?? (food.defOz ?? 4) * sizeFactor(part);
+        const oz = ouncesIn(part) ?? (food.defOz ?? 4) * sizeFactor(part) * (salad ? 0.67 : 1);
         v = add(n(0, 0, 0), food.perOz, oz);
       } else {
-        const count = countBefore(part, name) ?? food.def;
-        v = add(n(0, 0, 0), food.per, count * (countBefore(part, name) ? 1 : sizeFactor(part)));
+        let c = countBefore(part, name);
+        // "a few chips", "a little rice": a small serving, not three of them
+        if (food.bulk && /\b(a few|few|a handful of|handful of|a little|little bit of|a bit of|some)\b/.test(part) && (c === null || c === 3)) c = 0.5;
+        // "cookie" (not "cookies"), "slice of pizza": one
+        if (c === null && !/s$/.test(name) && food.names.some((x) => x === `${name}s` || x === `${name}es`)) c = 1;
+        if (c === null && /\bslice of\b/.test(part)) c = 1;
+        const count = c ?? food.def;
+        v = add(n(0, 0, 0), food.per, count * (c !== null ? 1 : sizeFactor(part)));
       }
+
       partTotal = partTotal ? add(partTotal, v) : v;
       if (food.dish) break;
       // don't match the same words twice ("egg whites" then "egg")
@@ -279,7 +335,12 @@ export function estimateNutrition(text: string): Nutrition | null {
     if (db && !curatedDish && (!partTotal || (db.coverage >= 0.99 && db.matched > consumedWords)) && !zeroCurated) {
       partTotal = { calories: db.calories, protein: db.protein, carbs: db.carbs };
     }
-    if (partTotal) total = total ? add(total, partTotal) : partTotal;
+    if (partTotal) {
+      // "half a sandwich", "a bite of cake"
+      if (/\bhalf\b(?!\s*(?:a\s+)?(?:pound|lb|gallon|and half))/.test(raw)) partTotal = scale(partTotal, 0.5);
+      if (/\b(a bite|bites|a taste|a nibble)\b/.test(raw)) partTotal = scale(partTotal, /\bbites\b/.test(raw) ? 0.35 : 0.2);
+      total = total ? add(total, partTotal) : partTotal;
+    }
   }
   if (!total || (total.calories === 0 && total.protein === 0 && total.carbs === 0)) return null;
   return {

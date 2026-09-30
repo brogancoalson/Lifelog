@@ -3,6 +3,7 @@ import { Platform } from 'react-native';
 import type { AppData, Bucket, ChatMessage, Entry, Goal, Settings, Trade, Transfer } from '../types';
 import { uid } from './dates';
 import { matchBucket, starterBuckets, FREE } from './money';
+import { estimateNutrition } from './nutrition';
 import { emptyData, loadData, normalizeData, saveData } from './storage';
 
 export type ChatKey = 'chat' | 'askChat' | 'tradeChat';
@@ -55,6 +56,23 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
             ...d,
             buckets: d.buckets.map((b) => (/latte factor/i.test(b.name) ? { ...b, rule: 'fixed' as const, value: 100 } : b)),
             settings: { ...d.settings, latte100: true },
+          };
+        }
+        // Sept 30: food estimates were double counting fillings ("burrito with chicken, rice and beans") and
+        // "a bowl of" anything. Redo the numbers the app estimated (never ones typed in), once.
+        if (!d.settings.estimatesV2) {
+          d = {
+            ...d,
+            entries: d.entries.map((e) => {
+              if (!e.nutritionEstimated || (e.category !== 'food' && e.category !== 'drink')) return e;
+              // "lunch" alone never had a real basis for numbers
+              if (/^\s*(breakfast|lunch|dinner|brunch|snack|a snack|meal|a meal|dessert|food)\s*$/i.test(e.text)) {
+                return { ...e, calories: undefined, protein: undefined, carbs: undefined, nutritionEstimated: undefined };
+              }
+              const est = estimateNutrition(e.text);
+              return est ? { ...e, ...est } : e;
+            }),
+            settings: { ...d.settings, estimatesV2: true },
           };
         }
         setData(d);

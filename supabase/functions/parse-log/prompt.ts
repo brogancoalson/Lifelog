@@ -28,6 +28,10 @@ Fields for each entry:
 - calories, protein, carbs (grams): use their numbers if they gave them. Otherwise, for food and drinks, estimate typical
   averages for the portion described (a "half pound burger" has a bigger patty than a plain burger; "large fries" more than fries)
   and set "estimated": true. Water, black coffee, and zero-calorie drinks get no numbers.
+  Estimate one normal serving, never high. A dish listed with what's in it is ONE dish: "burrito with chicken, rice and beans"
+  is about 800 cal total, not the burrito plus each filling. Reference points: bowl of cereal with milk ~250, slice of pizza ~285,
+  sandwich ~450, chicken and rice ~500, Chipotle bowl ~700, burger and fries ~900. "Half", "a bite", "a few" mean less.
+  If no food is named ("dinner", "a snack", "leftovers"), leave the numbers out.
 - money: positive number for money earned, negative for money spent (USD). "$1,250" is 1250. Tips they left, donations, tithes,
   bills, and payments they made are negative; "paid me", "sent me", payouts, sales, and trading profit are positive.
   A food or drink with a price ("chipotle $14") is two entries: the food and the money.
