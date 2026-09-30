@@ -143,6 +143,7 @@ export interface Settings {
   pay: PaySettings;
   freeStart?: number; // free money on hand when buckets were set up
   bucketsSeeded?: boolean;
+  latte100?: boolean; // one-time switch of the latte factor to $100 per paycheck (Sept 30)
 }
 
 export interface ChatMessage {

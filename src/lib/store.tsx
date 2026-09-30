@@ -1,4 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { Platform } from 'react-native';
 import type { AppData, Bucket, ChatMessage, Entry, Goal, Settings, Trade, Transfer } from '../types';
 import { uid } from './dates';
 import { matchBucket, starterBuckets, FREE } from './money';
@@ -46,6 +47,15 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         // first run with buckets: add the starter set once
         if (!d.settings.bucketsSeeded && d.buckets.length === 0) {
           d = { ...d, buckets: starterBuckets(), settings: { ...d.settings, bucketsSeeded: true } };
+        }
+        // Sept 30: Brogan puts $100 of every paycheck into his IRA. Switch his latte factor once, on his phone only
+        // (the web version is what his buddy uses), and never again so later edits stick.
+        if (!d.settings.latte100 && Platform.OS !== 'web') {
+          d = {
+            ...d,
+            buckets: d.buckets.map((b) => (/latte factor/i.test(b.name) ? { ...b, rule: 'fixed' as const, value: 100 } : b)),
+            settings: { ...d.settings, latte100: true },
+          };
         }
         setData(d);
         setReady(true);
