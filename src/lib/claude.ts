@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import type { ChatMessage } from '../types';
 
 /**
  * Direct calls to the Claude API with the person's own key (stored only on their device).
@@ -135,4 +136,38 @@ export async function runWithTools(opts: {
     messages.push({ role: 'user', content: results });
   }
   return 'That question needed more lookups than I can do at once. Try asking about a shorter time range.';
+}
+
+// the app's own error replies, for chats saved before they were marked as errors
+const APP_ERROR =
+  /^(Claude rejected the API key|This API key isn’t allowed|Too many requests right now|Claude is having trouble|Your Claude API account is out of credit|Couldn’t reach Claude|Claude sent back something|That was too much to send|Ask needs a Claude connection|Something went wrong|Claude didn’t answer|Claude returned an error)/;
+
+/**
+ * Earlier chat turns to send with a new message. Leaves out the app's error replies and the
+ * question each one answered: otherwise Claude reads "Claude rejected the API key" as something
+ * it said and keeps saying the key is broken after it's fixed. Turns alternate, starting with the user.
+ */
+export function chatHistory(history: ChatMessage[], max: number, textOf: (m: ChatMessage) => string = (m) => m.text.trim()): Msg[] {
+  const kept: ChatMessage[] = [];
+  for (const m of history) {
+    if (m.undone) continue;
+    // ...and Claude's own replies about a key problem, which would talk it into the same thing again
+    if (m.role === 'app' && (m.error || APP_ERROR.test(m.text.trim()) || /\bAPI key\b/i.test(m.text))) {
+      if (kept.length && kept[kept.length - 1].role === 'me') kept.pop();
+      continue;
+    }
+    if (!textOf(m)) continue;
+    kept.push(m);
+  }
+  const out: Msg[] = [];
+  for (const m of kept.slice(-max)) {
+    const role = m.role === 'me' ? 'user' : 'assistant';
+    const last = out[out.length - 1];
+    if (last && last.role === role) last.content = `${last.content}\n\n${textOf(m)}`;
+    else out.push({ role, content: textOf(m) });
+  }
+  while (out.length && out[0].role !== 'user') out.shift();
+  // the new message is a user turn, so the history has to end with Claude's
+  while (out.length && out[out.length - 1].role === 'user') out.pop();
+  return out;
 }

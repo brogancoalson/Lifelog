@@ -323,7 +323,7 @@ function Journal({ onOpenTrade }: { onOpenTrade: (t: Trade) => void }) {
       const now = new Date();
       const tr: Trade = { id: uid(), date: toDay(now), time: toTime(now), symbol: DEFAULT_SYMBOL, notes: text, images: images.map((i) => i.id), createdAt: now.toISOString(), source: 'chat' };
       upsertTrade(tr);
-      addChat({ role: 'app', text: `${e?.message ?? 'Claude didn’t answer.'} I saved what you wrote to your journal anyway.`, tradeIds: [tr.id] }, 'tradeChat');
+      addChat({ role: 'app', text: `${e?.message ?? 'Claude didn’t answer.'} I saved what you wrote to your journal anyway.`, tradeIds: [tr.id], error: true }, 'tradeChat');
     }
     setBusy(false);
   };

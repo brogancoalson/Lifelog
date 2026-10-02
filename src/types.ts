@@ -158,6 +158,7 @@ export interface ChatMessage {
   images?: string[];
   createdAt: string;
   undone?: boolean;
+  error?: boolean; // the app's own error reply (no key, offline...), never sent to Claude as something it said
 }
 
 export interface AppData {

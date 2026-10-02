@@ -1,5 +1,5 @@
 import type { AppData, ChatMessage, Entry } from '../types';
-import { callClaude, MODEL_SMART, runWithTools, type Msg, type ToolDef } from './claude';
+import { callClaude, chatHistory, MODEL_SMART, runWithTools, type Msg, type ToolDef } from './claude';
 import { addDays, isValidDay, toDay } from './dates';
 import { moneyState } from './money';
 import { awardTotals, goalProgress, isWater, toOz } from './stats';
@@ -273,12 +273,7 @@ export async function askMode(data: AppData): Promise<AskMode> {
 
 export async function ask(question: string, history: ChatMessage[], data: AppData, onStep?: (s: string) => void): Promise<string> {
   const mode = await askMode(data);
-  const prior: Msg[] = history
-    .filter((m) => !m.undone && m.text.trim())
-    .slice(-8)
-    .map((m) => ({ role: m.role === 'me' ? 'user' : 'assistant', content: m.text }));
-  // the API needs turns to alternate and start with the user
-  while (prior.length && prior[0].role !== 'user') prior.shift();
+  const prior = chatHistory(history, 8);
   const messages: Msg[] = [...prior, { role: 'user', content: question }];
   if (mode === 'key') {
     return runWithTools({

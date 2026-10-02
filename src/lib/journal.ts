@@ -1,6 +1,6 @@
 import type { AppData, ChatMessage, Trade } from '../types';
 import { sampler } from './aiParse';
-import { callClaude, MODEL_SMART, textOf, type ContentBlock, type Msg } from './claude';
+import { chatHistory, callClaude, MODEL_SMART, textOf, type ContentBlock, type Msg } from './claude';
 import { addDays, toDay, toTime, uid } from './dates';
 import { DEFAULT_SYMBOL, normalizeTrade } from './storage';
 
@@ -88,10 +88,7 @@ export async function journalMessage(
     normalizeTrade({ ...raw, id: uid(), images: images.map((i) => i.id), notes: raw.notes || text, source: 'chat' }, fallback) ?? undefined;
 
   if (data.settings.claudeKey) {
-    const prior: Msg[] = history
-      .slice(-6)
-      .map((m) => ({ role: m.role === 'me' ? 'user' : 'assistant', content: m.text.trim() || (m.images?.length ? '(sent a screenshot)' : '(no text)') }) as Msg);
-    while (prior.length && prior[0].role !== 'user') prior.shift();
+    const prior: Msg[] = chatHistory(history, 6, (m) => m.text.trim() || (m.images?.length ? '(sent a screenshot)' : '(no text)'));
     const content: ContentBlock[] = [
       ...images.map((i) => ({ type: 'image' as const, source: { type: 'base64' as const, media_type: 'image/jpeg', data: i.base64 } })),
       { type: 'text', text: text || '(screenshot only)' },

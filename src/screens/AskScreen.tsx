@@ -63,6 +63,7 @@ export function AskScreen({ onOpenSettings }: { onOpenSettings: () => void }) {
             e?.message === 'NO_AI'
               ? 'Ask needs a Claude connection to answer. Add your Claude API key in Settings, then ask again.'
               : e?.message ?? 'Something went wrong. Try again.',
+          error: true,
         },
         'askChat',
       );
