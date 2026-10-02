@@ -146,6 +146,7 @@ export interface Settings {
   bucketsSeeded?: boolean;
   latte100?: boolean; // one-time switch of the latte factor to $100 per paycheck (Sept 30)
   estimatesV3?: boolean; // one-time redo of estimated food numbers after the Sept 30 fixes
+  circuitsOct1?: boolean; // one-time add of the Oct 1 circuit workout told to Claude while the phone was away
 }
 
 export interface ChatMessage {

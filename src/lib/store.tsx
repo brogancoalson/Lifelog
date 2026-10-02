@@ -75,6 +75,27 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
             settings: { ...d.settings, estimatesV3: true },
           };
         }
+        // Oct 1: the circuit workout Brogan told Claude while his phone was put away. Added once, on his phone
+        // only (the web version is his buddy's). If he'd already started logging it that day, fill that one in.
+        if (!d.settings.circuitsOct1 && Platform.OS !== 'web') {
+          const details = [
+            'Full-body rollout with a lacrosse ball and roller',
+            '90/90 stretches and spider stretches, then rolled out whatever was tight',
+            'Circuit 1, 3 rounds: sled pulls starting at 2 plates, up a plate every round, then run to the mailboxes and back',
+            '3 min break',
+            'Circuit 2, 3 rounds: sled push to the tape and back, then burpee broad jumps all the way down',
+            '25 unbroken wall balls',
+            '3 min break',
+            '25 unbroken wall balls',
+          ].join('\n');
+          const started = d.entries.find(
+            (e) => e.category === 'workout' && e.date === '2026-10-01' && /circuit|sled|wall ?balls?|burpee|roll ?out|stretch/i.test(`${e.text} ${e.details ?? ''}`),
+          );
+          const entries: Entry[] = started
+            ? d.entries.map((e) => (e === started ? { ...e, details } : e))
+            : [...d.entries, { id: uid(), createdAt: '2026-10-02T03:19:00.000Z', date: '2026-10-01', category: 'workout', text: 'Circuits', details, source: 'manual' }];
+          d = { ...d, entries, settings: { ...d.settings, circuitsOct1: true } };
+        }
         setData(d);
         setReady(true);
       })

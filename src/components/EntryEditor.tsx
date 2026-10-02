@@ -93,6 +93,8 @@ export function EntryEditor({
   const { data, addEntries, updateEntry, deleteEntries } = useStore();
   const [f, setF] = useState<Form>(() => toForm(entry, defaults));
   const [confirmDelete, setConfirmDelete] = useState(false);
+  // the web's text box doesn't grow on its own, so size it to what's in it
+  const [boxHeight, setBoxHeight] = useState(150);
 
   // Reset the form each time the sheet opens (not on every parent render).
   const openToken = visible ? entry?.id ?? 'new' : null;
@@ -281,7 +283,8 @@ export function EntryEditor({
                     onChangeText={onDetails}
                     onBlur={tidyDetails}
                     multiline
-                    scrollEnabled={false}
+                    scrollEnabled={Platform.OS === 'web'}
+                    onContentSizeChange={(e) => setBoxHeight(Math.max(150, Math.ceil(e.nativeEvent.contentSize.height) + 2))}
                     autoCapitalize="sentences"
                     placeholder={'Tap the mic and talk. Hit return for the next bullet.\nSled push to the tape and back, then burpee broad jumps, 3 rounds'}
                     placeholderTextColor={t.textFaint}
@@ -299,6 +302,7 @@ export function EntryEditor({
                       borderColor: t.border,
                       minHeight: 150,
                       textAlignVertical: 'top',
+                      ...(Platform.OS === 'web' ? { height: boxHeight } : null),
                     }}
                   />
                   <Body dim style={{ fontSize: 13 }}>
