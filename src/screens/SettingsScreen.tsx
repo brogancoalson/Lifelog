@@ -11,6 +11,11 @@ import { fmtMoney } from '../lib/stats';
 import { useStore } from '../lib/store';
 import { font, radius, space, useTheme } from '../theme';
 
+/** A pasted key without stray spaces, line breaks, or quotes. */
+const cleanKey = (k: string) => k.replace(/\s+/g, '').replace(/^['"]+|['"]+$/g, '');
+/** "sk-ant-…a1B2": enough to recognize it without showing it. */
+const maskKey = (k?: string) => (k ? `${k.slice(0, 7)}…${k.slice(-4)}` : '');
+
 export function SettingsScreen({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const t = useTheme();
   const { data, updateSettings, replaceAll } = useStore();
@@ -25,6 +30,8 @@ export function SettingsScreen({ visible, onClose }: { visible: boolean; onClose
   const [key, setKey] = useState(data.settings.aiKey ?? '');
   const [claudeKey, setClaudeKey] = useState(data.settings.claudeKey ?? '');
   const [testing, setTesting] = useState(false);
+  // shown right under the key box, so it's visible without scrolling back to the top
+  const [keyStatus, setKeyStatus] = useState<{ tone: 'good' | 'bad' | 'dim'; text: string } | null>(null);
   const [aboutMe, setAboutMe] = useState(data.settings.aboutMe ?? '');
   const pay = data.settings.pay;
   const [hourly, setHourly] = useState(String(pay.hourly));
@@ -50,6 +57,7 @@ export function SettingsScreen({ visible, onClose }: { visible: boolean; onClose
     setEndpoint(data.settings.aiEndpoint ?? '');
     setKey(data.settings.aiKey ?? '');
     setClaudeKey(data.settings.claudeKey ?? '');
+    setKeyStatus(null);
     setAboutMe(data.settings.aboutMe ?? '');
     setHourly(String(data.settings.pay.hourly));
     setHoursPerDay(String(data.settings.pay.hoursPerDay));
@@ -159,36 +167,80 @@ export function SettingsScreen({ visible, onClose }: { visible: boolean; onClose
               <Field
                 label="Claude API key"
                 value={claudeKey}
-                onChangeText={setClaudeKey}
+                onChangeText={(v) => {
+                  setClaudeKey(v);
+                  setKeyStatus(null);
+                }}
                 placeholder="sk-ant-..."
                 autoCapitalize="none"
                 autoCorrect={false}
                 secureTextEntry
               />
+              {(() => {
+                const typed = cleanKey(claudeKey);
+                const saved = data.settings.claudeKey;
+                const status =
+                  keyStatus ??
+                  (typed && typed === saved
+                    ? { tone: 'good' as const, text: `Saved on this device (${maskKey(saved)}).` }
+                    : typed
+                      ? { tone: 'dim' as const, text: `In the box: ${maskKey(typed)}. Tap Save key.` }
+                      : saved
+                        ? { tone: 'dim' as const, text: 'Box is empty. Tap Save key to remove the saved key.' }
+                        : { tone: 'dim' as const, text: 'No key on this device yet.' });
+                return (
+                  <Text style={{ color: status.tone === 'good' ? t.good : status.tone === 'bad' ? t.danger : t.textDim, fontSize: 14, lineHeight: 20 }}>
+                    {status.text}
+                  </Text>
+                );
+              })()}
               <View style={{ flexDirection: 'row', gap: 8 }}>
                 <Button
                   small
-                  title="Save key"
+                  variant="secondary"
+                  title="Paste key"
+                  icon="clipboard-outline"
                   style={{ flex: 1 }}
-                  onPress={() => {
-                    updateSettings({ claudeKey: claudeKey.trim() || undefined });
-                    flash(claudeKey.trim() ? 'Claude key saved' : 'Claude key removed');
+                  onPress={async () => {
+                    let pasted = '';
+                    try {
+                      pasted = cleanKey(await Clipboard.getStringAsync());
+                    } catch {
+                      // fall through to the message below
+                    }
+                    if (!pasted) {
+                      setKeyStatus({ tone: 'bad', text: 'Nothing to paste. Copy the key in the Claude Console first (and tap Allow Paste if your phone asks).' });
+                      return;
+                    }
+                    setClaudeKey(pasted);
+                    setKeyStatus(
+                      pasted.startsWith('sk-ant-')
+                        ? { tone: 'dim', text: `Pasted ${maskKey(pasted)}. Tap Save key.` }
+                        : { tone: 'bad', text: 'That doesn’t look like a Claude API key (they start with sk-ant-). Copy the key again.' },
+                    );
                   }}
                 />
                 <Button
                   small
-                  variant="secondary"
-                  title="Test"
+                  title="Save key"
                   loading={testing}
-                  disabled={!claudeKey.trim()}
                   style={{ flex: 1 }}
                   onPress={async () => {
+                    const k = cleanKey(claudeKey);
+                    setClaudeKey(k);
+                    updateSettings({ claudeKey: k || undefined });
+                    if (!k) {
+                      setKeyStatus({ tone: 'dim', text: 'Key removed from this device.' });
+                      return;
+                    }
+                    // check it right away so they know it works
                     setTesting(true);
+                    setKeyStatus({ tone: 'dim', text: 'Saved. Checking it with Claude…' });
                     try {
-                      await testKey(claudeKey.trim());
-                      flash('Connected to Claude');
+                      await testKey(k);
+                      setKeyStatus({ tone: 'good', text: 'Saved and connected to Claude. Log, Ask, and the trading journal will use it now.' });
                     } catch (e: any) {
-                      flash(e?.message ?? 'Couldn’t reach Claude');
+                      setKeyStatus({ tone: 'bad', text: `Saved, but Claude said: ${e?.message ?? 'couldn’t connect'}` });
                     }
                     setTesting(false);
                   }}
