@@ -1,22 +1,15 @@
-import React, { useState } from 'react';
-import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, View } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { AWARD_AREAS, AWARD_ORDER, CATEGORIES, CATEGORY_ORDER, MOOD_LABELS } from '../lib/categories';
-import { addDays, prettyDay, toDay, toTime, uid } from '../lib/dates';
+import { addDays, prettyDay, toDay, toTime } from '../lib/dates';
 import { matchBucket } from '../lib/money';
 import { estimateNutrition } from '../lib/nutrition';
 import { normalizeEntry } from '../lib/storage';
 import { useStore } from '../lib/store';
+import { BULLET, bulletLines, detailLines, formatBullets, liftLine, liftsFromLines, liftSummary, sessionFromLines } from '../lib/workout';
 import { font, radius, space, useInsets, useTheme } from '../theme';
 import type { AwardArea, Category, Entry } from '../types';
 import { Body, Button, Chip, Field, IconButton, Label } from './ui';
-
-interface LiftForm {
-  key: string;
-  name: string;
-  weight: string;
-  reps: string;
-  sets: string;
-}
 
 interface Form {
   category: Category;
@@ -32,7 +25,8 @@ interface Form {
   money: string;
   moneyDir: 'in' | 'out';
   mood: number;
-  lifts: LiftForm[];
+  details: string; // the workout box, shown as bullets
+  detailsStart: string; // what the box held when it opened (to keep exact lift numbers if it isn't touched)
   bucketId?: string;
   bucketTouched: boolean;
   sleepHours: string;
@@ -46,7 +40,17 @@ const n = (v: string) => {
   return Number.isFinite(x) ? x : undefined;
 };
 
+/** What the workout box starts with: the saved lines, or older entries' lifts written out. */
+function startDetails(e?: Entry): string {
+  if (!e || e.category !== 'workout') return '';
+  if (e.details) return formatBullets(detailLines(e.details));
+  return e.lifts?.length ? formatBullets(e.lifts.map(liftLine)) : '';
+}
+
+const sameLines = (a: string, b: string) => bulletLines(a).join('\n') === bulletLines(b).join('\n');
+
 function toForm(e?: Entry, defaults?: Partial<Entry>): Form {
+  const details = startDetails(e);
   return {
     category: e?.category ?? defaults?.category ?? 'food',
     text: e?.text ?? '',
@@ -61,7 +65,8 @@ function toForm(e?: Entry, defaults?: Partial<Entry>): Form {
     money: e?.money !== undefined ? s(Math.abs(e.money)) : '',
     moneyDir: e?.money !== undefined && e.money >= 0 ? 'in' : 'out',
     mood: e?.mood ?? 0,
-    lifts: (e?.lifts ?? []).map((l) => ({ key: uid(), name: l.name, weight: s(l.weight), reps: s(l.reps), sets: s(l.sets) })),
+    details,
+    detailsStart: details,
     bucketId: e?.bucketId,
     bucketTouched: !!e,
     sleepHours: e?.category === 'sleep' && e.minutes ? s(Math.round((e.minutes / 60) * 100) / 100) : '',
@@ -102,7 +107,12 @@ export function EntryEditor({
   const cat = f.category;
   const needsMinutes = !!f.awardArea;
   const moneyVal = n(f.money);
-  const canSave = f.text.trim().length > 0 && (!needsMinutes || !!n(f.minutes));
+  // the workout box: its lines, the lifts read from them, and the title it gets if none is typed
+  const workoutLines = useMemo(() => (cat === 'workout' ? bulletLines(f.details) : []), [cat, f.details]);
+  const workoutLifts = useMemo(() => liftsFromLines(workoutLines), [workoutLines]);
+  const autoTitle = useMemo(() => (workoutLines.length ? sessionFromLines(workoutLines).title : ''), [workoutLines]);
+  const hasWhat = f.text.trim().length > 0 || (cat === 'workout' && workoutLines.length > 0);
+  const canSave = hasWhat && (!needsMinutes || !!n(f.minutes));
 
   const save = () => {
     const today = toDay();
@@ -147,8 +157,18 @@ export function EntryEditor({
       if (f.mood) raw.mood = f.mood;
     }
     if (cat === 'mood' && f.mood) raw.mood = f.mood;
-    if (cat === 'workout')
-      raw.lifts = f.lifts.filter((l) => l.name.trim()).map((l) => ({ name: l.name, weight: n(l.weight), reps: n(l.reps), sets: n(l.sets) }));
+    if (cat === 'workout') {
+      let lines = workoutLines;
+      if (!f.text.trim()) {
+        // no title typed: a line like "Push day" becomes the title, or it's named from what was trained
+        const session = sessionFromLines(lines);
+        raw.text = session.title;
+        lines = session.lines;
+      }
+      raw.details = lines.join('\n') || undefined;
+      // box untouched: keep the exact lift numbers; otherwise read them from the lines
+      raw.lifts = entry && sameLines(f.details, f.detailsStart) ? entry.lifts : liftsFromLines(lines);
+    }
     const e = normalizeEntry(raw, { source: 'manual' });
     if (!e) return;
     if (entry) updateEntry(e);
@@ -156,8 +176,25 @@ export function EntryEditor({
     onClose();
   };
 
-  const updateLift = (key: string, patch: Partial<LiftForm>) =>
-    set('lifts', f.lifts.map((l) => (l.key === key ? { ...l, ...patch } : l)));
+  // pressing return starts the next bullet
+  const onDetails = (v: string) =>
+    setF((p) => {
+      if (v.length === p.details.length + 1 && v.endsWith('\n') && v.startsWith(p.details) && p.details.trim()) {
+        return { ...p, details: `${formatBullets(bulletLines(p.details))}\n${BULLET} ` };
+      }
+      return { ...p, details: v };
+    });
+  // done typing or talking: turn it into clean bullets (and use "Push day" as the title if there isn't one)
+  const tidyDetails = () =>
+    setF((p) => {
+      const lines = bulletLines(p.details);
+      if (!lines.length) return { ...p, details: '' };
+      if (!p.text.trim()) {
+        const session = sessionFromLines(lines, '');
+        if (session.title && session.lines.length < lines.length) return { ...p, text: session.title, details: formatBullets(session.lines) };
+      }
+      return { ...p, details: formatBullets(lines) };
+    });
 
   const placeholder: Record<Category, string> = {
     food: 'Chicken and rice',
@@ -204,7 +241,11 @@ export function EntryEditor({
             <Text style={{ color: t.text, fontSize: 26, fontFamily: font.display, letterSpacing: 1.2 }}>{entry ? 'Edit entry' : 'Log something'}</Text>
             <View style={{ width: 40 }} />
           </View>
-          <ScrollView contentContainerStyle={{ padding: space.lg, gap: space.lg, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
+          <ScrollView
+            contentContainerStyle={{ padding: space.lg, gap: space.lg, paddingBottom: 40 }}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+          >
             <View style={{ gap: 8 }}>
               <Label>Type</Label>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
@@ -221,7 +262,57 @@ export function EntryEditor({
               </View>
             </View>
 
-            <Field label="What" value={f.text} onChangeText={(v) => set('text', v)} placeholder={placeholder[cat]} autoFocus={!entry} />
+            <Field
+              label={cat === 'workout' ? 'Title' : 'What'}
+              value={f.text}
+              onChangeText={(v) => set('text', v)}
+              placeholder={cat === 'workout' && autoTitle ? autoTitle : placeholder[cat]}
+              autoFocus={!entry}
+            />
+
+            {cat === 'workout' ? (
+              <View style={{ gap: 10 }}>
+                <View style={{ gap: 6 }}>
+                  <Label>What you did</Label>
+                  <TextInput
+                    value={f.details}
+                    onChangeText={onDetails}
+                    onBlur={tidyDetails}
+                    multiline
+                    scrollEnabled={false}
+                    autoCapitalize="sentences"
+                    placeholder={'Type or tap the mic and talk it out:\nBench 185, 3 sets of 8. Then incline dumbbell 60s 3x12. Then cable flies.'}
+                    placeholderTextColor={t.textFaint}
+                    accessibilityLabel="What you did"
+                    style={{
+                      backgroundColor: t.surface2,
+                      color: t.text,
+                      borderRadius: radius.md,
+                      paddingHorizontal: 12,
+                      paddingTop: 11,
+                      paddingBottom: 11,
+                      fontSize: 16,
+                      lineHeight: 23,
+                      borderWidth: 1,
+                      borderColor: t.border,
+                      minHeight: 150,
+                      textAlignVertical: 'top',
+                    }}
+                  />
+                  <Body dim style={{ fontSize: 13 }}>
+                    It turns into bullet points when you tap out of the box. Each exercise gets its own line.
+                  </Body>
+                </View>
+                {workoutLifts.length ? (
+                  <View style={{ gap: 4, padding: space.sm, borderRadius: radius.md, borderWidth: 1, borderColor: t.border }}>
+                    <Label>Counts toward lift records</Label>
+                    <Body dim style={{ fontSize: 13, lineHeight: 19 }}>
+                      {workoutLifts.map(liftSummary).join(' · ')}
+                    </Body>
+                  </View>
+                ) : null}
+              </View>
+            ) : null}
 
             <View style={{ gap: 8 }}>
               <Label>Day</Label>
@@ -273,32 +364,6 @@ export function EntryEditor({
 
             {cat === 'workout' ? (
               <View style={{ gap: 10 }}>
-                <Label>Lifts</Label>
-                {f.lifts.map((l) => (
-                  <View key={l.key} style={{ flexDirection: 'row', gap: 6, alignItems: 'flex-end' }}>
-                    <View style={{ flex: 2.2 }}>
-                      <Field value={l.name} onChangeText={(v) => updateLift(l.key, { name: v })} placeholder="Bench" />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Field value={l.weight} onChangeText={(v) => updateLift(l.key, { weight: v })} placeholder="lbs" keyboardType="number-pad" />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Field value={l.reps} onChangeText={(v) => updateLift(l.key, { reps: v })} placeholder="reps" keyboardType="number-pad" />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Field value={l.sets} onChangeText={(v) => updateLift(l.key, { sets: v })} placeholder="sets" keyboardType="number-pad" />
-                    </View>
-                    <IconButton icon="trash-outline" label="Remove lift" size={18} onPress={() => set('lifts', f.lifts.filter((x) => x.key !== l.key))} />
-                  </View>
-                ))}
-                <Button
-                  small
-                  variant="secondary"
-                  icon="add"
-                  title="Add lift"
-                  onPress={() => set('lifts', [...f.lifts, { key: uid(), name: '', weight: '', reps: '', sets: '' }])}
-                  style={{ alignSelf: 'flex-start' }}
-                />
                 <View style={{ flexDirection: 'row', gap: 12 }}>
                   <View style={{ flex: 1 }}>
                     <Field label="Distance (optional)" value={f.amount} onChangeText={(v) => set('amount', v)} keyboardType="decimal-pad" placeholder="miles" />

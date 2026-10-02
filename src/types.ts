@@ -37,6 +37,7 @@ export interface Entry {
   money?: number; // + made, - spent (USD)
   mood?: number; // 1-5
   lifts?: Lift[];
+  details?: string; // workout written out, one exercise or note per line (shown as bullets)
   awardArea?: AwardArea; // counts toward Congressional Award
   validator?: string; // who can verify the award hours
   bucketId?: string; // money spent out of this bucket

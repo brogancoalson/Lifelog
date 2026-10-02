@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { EntryEditor } from '../components/EntryEditor';
-import { entryDetails } from '../components/EntryRow';
+import { entryDetails, WorkoutBullets } from '../components/EntryRow';
 import { Body, CategoryDot, Icon, IconButton, Title } from '../components/ui';
 import { detectSortMode, sortMessage, SortMode } from '../lib/aiParse';
 import { awardReply } from '../lib/awardTag';
@@ -59,6 +59,11 @@ function MessageEntries({ entries, onEdit }: { entries: Entry[]; onEdit: (e: Ent
                   .filter(Boolean)
                   .join(' · ')}
               </Text>
+              {e.details ? (
+                <View style={{ marginTop: 4 }}>
+                  <WorkoutBullets details={e.details} max={6} size={12} />
+                </View>
+              ) : null}
             </View>
             <Icon name="create-outline" size={16} color={t.textFaint} />
           </Pressable>

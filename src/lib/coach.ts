@@ -28,6 +28,14 @@ export function muscleGroup(name: string): Group {
   return 'other';
 }
 
+/** Every group a phrase mentions: "chest, back and arms" -> chest, back, biceps, triceps. */
+export function groupsIn(text: string): Group[] {
+  const s = text.toLowerCase();
+  const out = GROUP_RULES.filter(([, re]) => re.test(s)).map(([g]) => g);
+  if (/\barms?\b/.test(s)) for (const g of ['biceps', 'triceps'] as const) if (!out.includes(g)) out.push(g);
+  return out;
+}
+
 const r1 = (n: number) => Math.round(n * 10) / 10;
 const daysBetween = (a: string, b: string) => Math.round((Date.parse(b) - Date.parse(a)) / 86400000);
 /** Estimated one-rep max (Epley). */
@@ -64,6 +72,8 @@ export function trainingSummary(entries: Entry[], start: string, end: string, to
     const inRange = e.date >= start && e.date <= end;
     if (inRange) workoutDays.add(e.date);
     if (e.lifts?.length) {
+      // lines without numbers ("Abs", "Cable crossovers") still mean that muscle got trained
+      if (e.details) for (const g of new Set(e.details.split('\n').map((l) => muscleGroup(l)))) if (g !== 'other') touch(g, e.date, 0, inRange);
       for (const l of e.lifts) {
         const key = l.name.toLowerCase().replace(/\s+/g, ' ').trim();
         if (!key) continue;
@@ -83,6 +93,17 @@ export function trainingSummary(entries: Entry[], start: string, end: string, to
         acc.latest = { date: e.date, weight: l.weight, reps: l.reps, sets: l.sets, e1rm: est };
         lifts.set(key, acc);
       }
+    } else if (e.details) {
+      // written out with no lift numbers ("Cable flies", "Abs"): count each line's muscle group as trained that day
+      const gs = new Set<Group>(e.details.split('\n').map((l) => muscleGroup(l)).filter((g) => g !== 'other'));
+      if (!gs.size) gs.add(muscleGroup(`${e.kind ?? ''} ${e.text}`));
+      for (const g of gs) touch(g, e.date, 0, inRange);
+      if (!inRange) continue;
+      const key = e.text.toLowerCase().trim();
+      const o = (other[key] ??= { name: e.text, sessions: 0, minutes: 0, last: e.date });
+      o.sessions += 1;
+      o.minutes += e.minutes ?? 0;
+      o.last = e.date;
     } else {
       const label = e.kind || e.text;
       const g = muscleGroup(`${e.kind ?? ''} ${e.text}`);

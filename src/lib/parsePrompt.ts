@@ -7,7 +7,8 @@ export function buildParsePrompt(today: string, weekday: string, time: string): 
 Today is ${weekday}, ${today}. The current local time is ${time}.
 
 Split the message into separate entries, one per distinct thing they did, ate, drank, spent, earned, or felt.
-Keep one meal as one entry ("chicken and rice" is one food entry). Keep one gym session as one workout entry with every lift in "lifts".
+Keep one meal as one entry ("chicken and rice" is one food entry). Keep one gym session as one workout entry with every lift in "lifts",
+even when they say it in several sentences ("Push day. Bench 185 3x8. Then incline. Then flies." is ONE workout).
 
 Fields for each entry:
 - category: one of food, drink, workout, activity, business, social, mood, money, sleep, note
@@ -20,6 +21,8 @@ Fields for each entry:
   "I ate a western burger and fries" -> "Western burger and fries". "I drank 32 oz of water" -> "Water".
   "Spent $14 on gas" -> "Gas". "I felt locked in today" -> "Locked in". "Benched 225 for 5" -> "Bench press".
   "Had a client call with a dentist" -> "Client call with a dentist"
+  For a workout session, text is its title: what they called it ("Push day", "Leg day", "Upper body"), otherwise a short name
+  from what they trained ("Chest + Triceps", or the lift names if there are only one or two: "Bench press + Squat").
 - date: YYYY-MM-DD. Resolve "yesterday", "last night", and weekday names relative to today. Default today.
   "Yesterday" only moves the things it refers to; "slept badly last night, eggs for breakfast" = sleep and breakfast both today.
   Sleep goes on the day they woke up: "slept 6 hours last night" said today is today's sleep.
@@ -40,6 +43,9 @@ Fields for each entry:
   A food or drink with a price ("chipotle $14") is two entries: the food and the money.
 - mood: 1-5 if they described how they felt (1 rough, 3 okay, 5 great)
 - lifts: for workouts, list each exercise as {name, weight (lbs), reps, sets}. "225 for 5" = weight 225, reps 5.
+- details: for a workout with more than one exercise or note, a list of short lines, one per exercise or note, in their words
+  without filler ("Bench press 185, 3 sets of 8", "Incline dumbbell press 60s 3x12", "Cable flies", "20 min stairmaster").
+  Leave out the title line and "went to the gym for an hour" (that's minutes).
 - awardArea: the Congressional Award area this counts toward.
   If they SAY where it goes ("that goes towards personal development", "counts for community service", "put it under
   physical fitness", "Personal: read for an hour", "for my award service hours"), ALWAYS set that area on the entry it
@@ -90,6 +96,7 @@ export const ENTRY_JSON_SCHEMA = {
               required: ['name'],
             },
           },
+          details: { type: 'array', items: { type: 'string' } },
           awardArea: { type: 'string', enum: ['service', 'personal', 'fitness', 'expedition'] },
         },
         required: ['category', 'text'],

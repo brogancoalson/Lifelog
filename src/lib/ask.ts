@@ -106,6 +106,7 @@ function slimEntry(e: Entry) {
   if (typeof e.money === 'number') o.money = e.money;
   if (e.mood) o[e.category === 'sleep' ? 'sleep_quality_1_5' : 'mood_1_5'] = e.mood;
   if (e.lifts?.length) o.lifts = e.lifts;
+  if (e.details) o.details = e.details.split('\n');
   if (e.awardArea) o.award_area = e.awardArea;
   return o;
 }

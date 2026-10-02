@@ -26,7 +26,7 @@ export function HistoryScreen({ onBack }: { onBack?: () => void }) {
     const list = data.entries.filter((e) => {
       if (filter === 'award' && !e.awardArea) return false;
       if (filter !== 'all' && filter !== 'award' && e.category !== filter) return false;
-      if (q && !`${e.text} ${e.kind ?? ''} ${(e.lifts ?? []).map((l) => l.name).join(' ')}`.toLowerCase().includes(q)) return false;
+      if (q && !`${e.text} ${e.kind ?? ''} ${(e.lifts ?? []).map((l) => l.name).join(' ')} ${e.details ?? ''}`.toLowerCase().includes(q)) return false;
       return true;
     });
     const byDay = new Map<string, Entry[]>();

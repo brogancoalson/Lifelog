@@ -58,6 +58,18 @@ export function normalizeEntry(raw: any, fallback: Partial<Entry> = {}): Entry |
         }))
         .filter((l: Lift) => l.name)
     : undefined;
+  // one line per exercise; AI sorting may send an array of lines
+  const detailSrc = Array.isArray(raw.details) ? raw.details.filter((l: unknown) => typeof l === 'string').join('\n') : raw.details;
+  const details =
+    typeof detailSrc === 'string'
+      ? detailSrc
+          .split('\n')
+          .map((l: string) => l.replace(/^\s*[•●▪◦‣*–—-]+\s*/, '').trim())
+          .filter(Boolean)
+          .slice(0, 60)
+          .join('\n')
+          .slice(0, 4000) || undefined
+      : undefined;
   const mood = num(raw.mood);
   const time = typeof raw.time === 'string' && /^\d{1,2}:\d{2}$/.test(raw.time) ? raw.time.padStart(5, '0') : undefined;
   return {
@@ -78,6 +90,7 @@ export function normalizeEntry(raw: any, fallback: Partial<Entry> = {}): Entry |
     money: num(raw.money),
     mood: mood !== undefined ? Math.min(5, Math.max(1, Math.round(mood))) : undefined,
     lifts: lifts && lifts.length ? lifts : undefined,
+    details,
     awardArea: isAwardArea(raw.awardArea) ? raw.awardArea : undefined,
     validator: str(raw.validator, 80),
     bucketId: str(raw.bucketId, 40),

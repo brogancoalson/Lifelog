@@ -1,7 +1,8 @@
-import type { AwardArea, Category, Entry, Lift } from '../types';
+import type { AwardArea, Category, Entry } from '../types';
 import { explicitAward, isTagOnly, mentionsAward, stripAwardTag, taggable, tagCoversAll } from './awardTag';
 import { addDays, toDay, toTime, uid } from './dates';
 import { isCuratedFood, withEstimate } from './nutrition';
+import { bulletLines, isExercise, isSessionLength, liftsFromLines, parseLifts, sessionFromLines } from './workout';
 
 /**
  * Offline "quick sort": a keyword-based parser used when AI sorting isn't
@@ -21,7 +22,7 @@ const RE = {
   moneyRate: /\$\s?\d[\d,.]*\s*(?:\/|an?|per)\s*(?:hour|hr|h|day|week|month)\b/i,
   mood: /\b(felt|feel|feeling|mood|stressed|anxious|tired|exhausted|happy|sad|motivated|locked in|energized|grateful|blessed|down|burnt out|burned out|frustrated|peaceful|pumped|(?:great|good|bad|rough|long|amazing|terrible|awful) day)\b/i,
   workout:
-    /\b(bench(?:ed)?|squats?|squatted|deadlifts?|deadlifted|dl|ohp|overhead press|pull ?downs?|lat pull|rdls?|lunges?|leg curls?|leg ext(?:ension)?s?|flyes|flys|lateral raises?|lat raises?|shrugs?|hip thrusts?|calf raises?|skull ?crushers?|triceps?|push ?downs?|preacher|(?:bench|leg|military|shoulder|incline|decline|dumbbell|db|chest|push) press(?:ed)?|curls?|curled|rows?|pull[- ]?ups?|push[- ]?ups?|chin[- ]?ups?|dips|lifts?|lifted|lifting|gym|work(?:ed)? ?out|leg day|chest day|back day|arm day|push day|pull day|ran|run|jog(?:ged)?|miles?|cardio|sprints?|hiit|swim|swam|bike|biked|cycling|stairmaster|incline walk|(?:hit|trained|did|worked)\s+(?:legs|chest|back|arms|shoulders|abs|core|glutes|upper(?: body)?|lower(?: body)?)|hike|hiked|hiking|basketball|football|soccer|tennis|pickleball|volleyball|baseball|softball|hockey|wrestling|boxing|jiu ?jitsu|bjj|mma|climbing|bouldering|yoga|pilates|skated|skating|surfed|surfing)\b/i,
+    /\b(bench(?:ed)?|squats?|squatted|deadlifts?|deadlifted|dl|ohp|overhead press|pull ?downs?|lat pull|rdls?|lunges?|leg curls?|leg ext(?:ension)?s?|flyes|flys|lateral raises?|lat raises?|shrugs?|hip thrusts?|calf raises?|skull ?crushers?|triceps?|push ?downs?|preacher|(?:bench|leg|military|shoulder|incline|decline|dumbbell|db|chest|push) press(?:ed)?|curls?|curled|rows?|pull[- ]?ups?|push[- ]?ups?|chin[- ]?ups?|dips|lifts?|lifted|lifting|gym|work(?:ed)? ?out|leg day|chest day|back day|arm day|push day|pull day|ran|run|jog(?:ged)?|miles?|cardio|sprints?|hiit|swim|swam|bike|biked|cycling|stairmaster|incline walk|(?:hit|trained|did|worked)\s+(?:legs|chest|back|arms|shoulders|abs|core|glutes|upper(?: body)?|lower(?: body)?)|hike|hiked|hiking|basketball|football|soccer|tennis|pickleball|volleyball|baseball|softball|hockey|wrestling|boxing|jiu ?jitsu|bjj|mma|climbing|bouldering|yoga|pilates|skated|skating|surfed|surfing|fl(?:ies|ys|yes)|cable (?:fl(?:y|ies|yes|ys)|rows?|curls?|crossovers?|pull|push|kickbacks?|raises?|laterals?)|crossovers?|crunch(?:es)?|planks?|sit[- ]?ups?|face pulls?|kickbacks?|pullovers?|super ?sets?|drop ?sets?|treadmill|elliptical|incline|(?:tricep|triceps|leg|front|rear delt|hanging leg) (?:raises?|extensions?)|\d+\s*[x×]\s*\d+|\d+\s*sets?|\d+\s*reps?|reps)\b/i,
   business:
     /\b(meeting|client|clients|call with|orders?|sales?|posted|post|reel|video|edited|editing|shipped|invoice|emailed|website|my store|online store|my shop|wix|unconquered|coverpoint|agency|lead|leads|pitched|outreach|traded|trading|trade|content|filmed|recorded|designed)\b/i,
   social: /\b(date|date night|girlfriend|gf|hung out|hangout|friends?|family|mom|dad|brother|sister|party|dinner with|lunch with|coffee with)\b/i,
@@ -65,92 +66,6 @@ function minutesIn(s0: string): number | undefined {
   if (!h && RE.halfHour.test(s)) total += 30;
   else if (!h && RE.anHour.test(s)) total += 60;
   return total || undefined;
-}
-
-const LIFT_NAMES: [RegExp, string][] = [
-  // specific names first so "leg curl" isn't a curl and "rdl" isn't a deadlift
-  [/incline (?:bench|press|db|dumbbell)/i, 'Incline bench press'],
-  [/\brdls?\b|romanian/i, 'Romanian deadlift'],
-  [/leg curl/i, 'Leg curl'],
-  [/leg press/i, 'Leg press'],
-  [/leg ext/i, 'Leg extension'],
-  [/lat pull|pull ?downs?/i, 'Lat pulldown'],
-  [/lat(?:eral)? raises?/i, 'Lateral raise'],
-  [/shoulder press|military press/i, 'Shoulder press'],
-  [/bench/i, 'Bench press'],
-  [/squat/i, 'Squat'],
-  [/deadlift|\bdl\b/i, 'Deadlift'],
-  [/ohp|overhead press/i, 'Overhead press'],
-  [/curl/i, 'Curl'],
-  [/row/i, 'Row'],
-  [/pull[- ]?up|chin[- ]?up/i, 'Pull-up'],
-  [/push[- ]?up/i, 'Push-up'],
-  [/dips/i, 'Dips'],
-  [/lunges?/i, 'Lunge'],
-  [/hip thrusts?/i, 'Hip thrust'],
-  [/calf raises?/i, 'Calf raise'],
-  [/shrugs?/i, 'Shrug'],
-  [/triceps?|skull ?crushers?|push ?downs?/i, 'Triceps'],
-  [/\bfl(?:y|ys|ies|yes)\b/i, 'Fly'],
-];
-
-function parseLifts(s: string): Lift[] {
-  const lifts: Lift[] = [];
-  // split on "and"/"then" so each lift gets its own numbers
-  for (const part of s.split(/\band\b|\bthen\b|&|\+/i)) {
-    const name = LIFT_NAMES.find(([re]) => re.test(part))?.[1];
-    if (!name) continue;
-    // "3x5 at 225" / "3x5 @ 225"
-    let m = part.match(/(\d+)\s*[x×]\s*(\d+)\s*(?:at|@)\s*(\d+)/i);
-    if (m) {
-      lifts.push({ name, sets: +m[1], reps: +m[2], weight: +m[3] });
-      continue;
-    }
-    // "225 5x5" (weight, then sets x reps)
-    m = part.match(/(\d{2,4})\s*(?:lbs?|pounds)?\s+(\d{1,2})\s*[x×]\s*(\d{1,2})\b/i);
-    if (m) {
-      lifts.push({ name, weight: +m[1], sets: +m[2], reps: +m[3] });
-      continue;
-    }
-    // "225 for 5 sets of 5"
-    m = part.match(/(\d{2,4})\s*(?:lbs?|pounds)?\s*(?:for|x)\s*(\d{1,2})\s*sets?\s*(?:of|x)\s*(\d{1,2})/i);
-    if (m) {
-      lifts.push({ name, weight: +m[1], sets: +m[2], reps: +m[3] });
-      continue;
-    }
-    // "pull ups 3x10" (small first number = sets)
-    m = part.match(/\b(\d{1,2})\s*[x×]\s*(\d{1,2})\b(?!\s*(?:at|@))/i);
-    if (m && +m[1] <= 10) {
-      lifts.push({ name, sets: +m[1], reps: +m[2] });
-      continue;
-    }
-    // "5 sets of 5 at 225"
-    m = part.match(/(\d+)\s*sets?\s*of\s*(\d+)[^\d]*?(?:at|@|with)\s*(\d+)/i);
-    if (m) {
-      lifts.push({ name, sets: +m[1], reps: +m[2], weight: +m[3] });
-      continue;
-    }
-    // "225 for 5" / "225x5" / "225 x 5 x 3"
-    m = part.match(/(\d{2,4})\s*(?:lbs?|pounds)?\s*(?:x|×|for)\s*(\d{1,2})(?:\s*(?:x|×|for)\s*(\d{1,2}))?/i);
-    if (m) {
-      lifts.push({ name, weight: +m[1], reps: +m[2], sets: m[3] ? +m[3] : undefined });
-      continue;
-    }
-    // "50 push-ups"
-    m = part.match(/(\d+)\s*(?:reps?\s*(?:of)?\s*)?(?:push[- ]?ups?|pull[- ]?ups?|chin[- ]?ups?|dips)/i);
-    if (m) {
-      lifts.push({ name, reps: +m[1] });
-      continue;
-    }
-    // "hit a PR on squat 365"
-    m = part.match(/\b(\d{2,4})\s*(?:lbs?|pounds)?\b/i);
-    if (m && +m[1] >= 45 && +m[1] <= 1200) {
-      lifts.push({ name, weight: +m[1] });
-      continue;
-    }
-    lifts.push({ name });
-  }
-  return lifts;
 }
 
 function moodScore(s: string): number {
@@ -313,6 +228,13 @@ function classify(s0: string): Category {
   return 'note';
 }
 
+/** Just a length of time: "took about an hour and 15 minutes", "1 hr at the gym", "90 min total". */
+function isDurationOnly(s: string): boolean {
+  if (!minutesIn(s)) return false;
+  const rest = stripCommon(s).replace(/\b(took|takes|took me|it|was|were|about|around|like|roughly|total|in total|overall|there|in the gym|at the gym|the gym|gym|the whole thing|whole thing|whole|workout|session|lasted|spent|me|us|we|i|for|of|an?|and|half|hours?|hrs?|mins?|minutes?|altogether)\b/gi, ' ');
+  return !rest.replace(/[\s,.]+/g, '');
+}
+
 export function quickParse(message: string, now: Date = new Date()): Entry[] {
   const today = toDay(now);
   const yesterday = addDays(today, -1);
@@ -337,7 +259,8 @@ export function quickParse(message: string, now: Date = new Date()): Entry[] {
     // "volunteered 2 hours and read for an hour" -> two things, each with its own time
     .flatMap((c) => {
       const halves = c.split(/\s+and\s+(?!a half)/i);
-      if (halves.length === 2 && halves.every((h) => minutesIn(h))) return keepWhen(halves, c);
+      // but "an hour and 15 minutes" is one length of time
+      if (halves.length === 2 && halves.every((h) => minutesIn(h)) && !/^\s*(?:about |like |around )?\d+\s*(?:m|min|mins|minutes?)\s*$/i.test(halves[1])) return keepWhen(halves, c);
       return [c];
     })
     // "chipotle $14", "had a burrito it was $12" -> the food, and the money
@@ -367,6 +290,9 @@ export function quickParse(message: string, now: Date = new Date()): Entry[] {
     });
 
   const out: Entry[] = [];
+  // one gym session said in pieces ("Push day. Bench 185 3x8. Then flies.") becomes one workout with bullet lines
+  const sessions = new Map<Entry, { chunks: string[]; when?: string }>();
+  const timeOfDay = (s: string) => s.match(/\b(this morning|in the morning|this afternoon|this evening|tonight|at \d{1,2}(?::\d{2})?\s*(?:am|pm)?)\b/i)?.[1]?.toLowerCase();
   let pendingTag: AwardArea | undefined;
   // "yesterday" carries on to the next things said; "last night" is just that one thing
   let saidYesterday = false;
@@ -388,6 +314,36 @@ export function quickParse(message: string, now: Date = new Date()): Entry[] {
     pendingTag = undefined;
     const chunk = mentionsAward(raw) ? stripAwardTag(raw) || raw : raw;
     let category = classify(chunk);
+    // keep adding to the workout session started just before this
+    const last0 = out[out.length - 1];
+    const session = last0 ? sessions.get(last0) : undefined;
+    // "took about an hour", "1 hr at the gym": how long that session was
+    if (session && last0 && !tag && isDurationOnly(chunk) && (saidYesterday || lastNight ? yesterday : today) === last0.date) {
+      last0.minutes = minutesIn(chunk);
+      last0.awardArea = last0.awardArea ?? 'fitness';
+      continue;
+    }
+    if (session && last0 && !tag) {
+      const when = timeOfDay(chunk);
+      const sameTime = !when || when === session.when;
+      const sameDay = (saidYesterday || lastNight ? yesterday : today) === last0.date;
+      // "185 pounds", "3 sets of 8" after "Bench press." (but "1 hr at the gym" is the session's length, handled below)
+      const justNumbers = /^\s*(?:for|at|x|with)?\s*\d/i.test(chunk) && !isExercise(chunk) && !minutesIn(chunk) && (category === 'note' || category === 'workout');
+      if (sameTime && sameDay && (justNumbers || (category === 'workout' && isExercise(chunk)))) {
+        session.chunks.push(chunk);
+        const mins = minutesIn(chunk);
+        if (mins && !justNumbers) {
+          last0.minutes = (last0.minutes ?? 0) + mins;
+          last0.awardArea = last0.awardArea ?? 'fitness';
+        }
+        const miles = chunk.match(/(\d+(?:\.\d+)?)\s*(?:mi|miles?)\b/i);
+        if (miles && last0.amount === undefined) {
+          last0.amount = parseFloat(miles[1]);
+          last0.unit = 'miles';
+        }
+        continue;
+      }
+    }
     if (tag && !taggable(category)) category = 'activity';
     if (tag && category === 'note') category = 'activity';
     // sleep goes on the morning they woke up: "slept 6 hours last night" is today's sleep
@@ -493,12 +449,23 @@ export function quickParse(message: string, now: Date = new Date()): Entry[] {
     }
     // "benched 225x5, 1 hr at the gym" -> one workout with a duration, not two entries
     const prev = out[out.length - 1];
-    if (prev && prev.category === 'workout' && category === 'workout' && !e.lifts && e.minutes && !prev.minutes && prev.date === e.date) {
+    if (prev && prev.category === 'workout' && category === 'workout' && !e.lifts && e.minutes && !prev.minutes && prev.date === e.date && !isExercise(chunk)) {
       prev.minutes = e.minutes;
       prev.awardArea = prev.awardArea ?? e.awardArea ?? 'fitness';
       continue;
     }
     out.push(withEstimate(e, chunk));
+    if (category === 'workout') sessions.set(e, { chunks: [chunk], when: timeOfDay(chunk) });
+  }
+  // a session said in more than one piece: title it, list each piece as a bullet, and read the lifts from every line
+  for (const [e, s] of sessions) {
+    const lines = bulletLines(s.chunks.join('\n')).filter((l) => !isSessionLength(l));
+    if (s.chunks.length < 2 && lines.length < 2) continue;
+    const session = sessionFromLines(lines, e.text);
+    const lifts = liftsFromLines(lines);
+    e.text = session.title;
+    e.details = session.lines.length ? session.lines.join('\n') : undefined;
+    e.lifts = lifts.length ? lifts : undefined;
   }
   return out;
 }

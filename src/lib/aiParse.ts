@@ -7,6 +7,7 @@ import { quickParse } from './quickParse';
 import { awardAreasIn, mentionsAward, stripAwardTag, taggable, tagCoversAll } from './awardTag';
 import { withEstimate } from './nutrition';
 import { normalizeEntry } from './storage';
+import { detailLines, liftsFromLines } from './workout';
 
 export type SortMode = 'ai-key' | 'ai-server' | 'ai-preview' | 'quick';
 
@@ -65,7 +66,19 @@ export async function sortMessage(message: string, settings: Settings): Promise<
   const today = toDay(now);
   const time = toTime(now);
   const fallback: Partial<Entry> = { date: today, time, source: 'chat' };
-  const finish = (raw: any[]) => awardSafetyNet(message, (raw.map((r) => normalizeEntry({ ...r, source: 'chat' }, fallback)).filter(Boolean) as Entry[]).map((e) => withEstimate(e)));
+  const finish = (raw: any[]) =>
+    awardSafetyNet(
+      message,
+      (raw.map((r) => normalizeEntry({ ...r, source: 'chat' }, fallback)).filter(Boolean) as Entry[]).map((e) => {
+        if (e.category !== 'workout') delete e.details;
+        // the bullet lines still count toward lift records if the AI left "lifts" out
+        else if (e.details && !e.lifts) {
+          const lifts = liftsFromLines(detailLines(e.details));
+          if (lifts.length) e.lifts = lifts;
+        }
+        return withEstimate(e);
+      }),
+    );
 
   const mode = await detectSortMode(settings);
   try {

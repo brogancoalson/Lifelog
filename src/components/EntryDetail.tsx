@@ -5,6 +5,7 @@ import { prettyTime } from '../lib/dates';
 import { fmtAmount, fmtMinutes, fmtMoney } from '../lib/stats';
 import { font, useTheme } from '../theme';
 import type { Entry } from '../types';
+import { WorkoutBullets } from './EntryRow';
 import { CategoryDot, Icon } from './ui';
 
 function Row({ k, v, color }: { k: string; v: string; color?: string }) {
@@ -36,7 +37,14 @@ export function EntryDetail({ entry, onPress }: { entry: Entry; onPress: () => v
   if (typeof entry.money === 'number')
     rows.push({ k: entry.money >= 0 ? 'Made' : 'Spent', v: `${entry.money >= 0 ? '+' : '−'}${fmtMoney(entry.money)}`, color: entry.money >= 0 ? t.good : t.danger });
   if (entry.mood) rows.push({ k: 'Mood', v: `${entry.mood} of 5 · ${MOOD_LABELS[entry.mood]}` });
-  for (const l of entry.lifts ?? []) {
+  if (entry.details) {
+    // the bullets already show each lift; just add the estimated maxes
+    const maxes = (entry.lifts ?? [])
+      .map((l) => (l.weight && l.reps && l.reps > 1 ? `${l.name} ${Math.round(l.weight * (1 + l.reps / 30))}` : ''))
+      .filter(Boolean);
+    if (maxes.length) rows.push({ k: 'Est. max', v: maxes.join(' · ') });
+  }
+  for (const l of entry.details ? [] : entry.lifts ?? []) {
     const parts = [
       l.weight !== undefined ? `${l.weight} lbs` : '',
       l.reps !== undefined ? `${l.reps} reps` : '',
@@ -73,6 +81,11 @@ export function EntryDetail({ entry, onPress }: { entry: Entry; onPress: () => v
         </View>
         <Icon name="create-outline" size={16} color={t.textFaint} />
       </View>
+      {entry.details ? (
+        <View style={{ borderTopWidth: 1, borderTopColor: t.border, paddingTop: 8 }}>
+          <WorkoutBullets details={entry.details} max={60} size={14} />
+        </View>
+      ) : null}
       <View style={{ borderTopWidth: 1, borderTopColor: t.border, paddingTop: 6 }}>
         {rows.map((r, i) => (
           <Row key={i} k={r.k} v={r.v} color={r.color} />
