@@ -6,7 +6,7 @@ import { matchBucket } from '../lib/money';
 import { estimateNutrition } from '../lib/nutrition';
 import { normalizeEntry } from '../lib/storage';
 import { useStore } from '../lib/store';
-import { BULLET, bulletLines, detailLines, formatBullets, liftLine, liftsFromLines, liftSummary, sessionFromLines } from '../lib/workout';
+import { BULLET, boxLines, bulletLines, detailLines, formatBox, formatBullets, liftLine, liftsFromLines, liftSummary, sessionFromLines } from '../lib/workout';
 import { font, radius, space, useInsets, useTheme } from '../theme';
 import type { AwardArea, Category, Entry } from '../types';
 import { Body, Button, Chip, Field, IconButton, Label } from './ui';
@@ -43,11 +43,13 @@ const n = (v: string) => {
 /** What the workout box starts with: the saved lines, or older entries' lifts written out. */
 function startDetails(e?: Entry): string {
   if (!e || e.category !== 'workout') return '';
-  if (e.details) return formatBullets(detailLines(e.details));
-  return e.lifts?.length ? formatBullets(e.lifts.map(liftLine)) : '';
+  if (e.details) return formatBox(detailLines(e.details));
+  return e.lifts?.length ? formatBox(e.lifts.map(liftLine)) : '';
 }
 
-const sameLines = (a: string, b: string) => bulletLines(a).join('\n') === bulletLines(b).join('\n');
+const sameLines = (a: string, b: string) => boxLines(a).join('\n') === boxLines(b).join('\n');
+// lift numbers for records are still found inside a line ("bench 185 3x8 then incline 60s 3x12")
+const liftsIn = (lines: string[]) => liftsFromLines(bulletLines(lines.join('\n')));
 
 function toForm(e?: Entry, defaults?: Partial<Entry>): Form {
   const details = startDetails(e);
@@ -108,8 +110,8 @@ export function EntryEditor({
   const needsMinutes = !!f.awardArea;
   const moneyVal = n(f.money);
   // the workout box: its lines, the lifts read from them, and the title it gets if none is typed
-  const workoutLines = useMemo(() => (cat === 'workout' ? bulletLines(f.details) : []), [cat, f.details]);
-  const workoutLifts = useMemo(() => liftsFromLines(workoutLines), [workoutLines]);
+  const workoutLines = useMemo(() => (cat === 'workout' ? boxLines(f.details) : []), [cat, f.details]);
+  const workoutLifts = useMemo(() => liftsIn(workoutLines), [workoutLines]);
   const autoTitle = useMemo(() => (workoutLines.length ? sessionFromLines(workoutLines).title : ''), [workoutLines]);
   const hasWhat = f.text.trim().length > 0 || (cat === 'workout' && workoutLines.length > 0);
   const canSave = hasWhat && (!needsMinutes || !!n(f.minutes));
@@ -167,7 +169,7 @@ export function EntryEditor({
       }
       raw.details = lines.join('\n') || undefined;
       // box untouched: keep the exact lift numbers; otherwise read them from the lines
-      raw.lifts = entry && sameLines(f.details, f.detailsStart) ? entry.lifts : liftsFromLines(lines);
+      raw.lifts = entry && sameLines(f.details, f.detailsStart) ? entry.lifts : liftsIn(lines);
     }
     const e = normalizeEntry(raw, { source: 'manual' });
     if (!e) return;
@@ -176,24 +178,24 @@ export function EntryEditor({
     onClose();
   };
 
-  // pressing return starts the next bullet
+  // pressing return starts the next bullet; talking never splits anything
   const onDetails = (v: string) =>
     setF((p) => {
       if (v.length === p.details.length + 1 && v.endsWith('\n') && v.startsWith(p.details) && p.details.trim()) {
-        return { ...p, details: `${formatBullets(bulletLines(p.details))}\n${BULLET} ` };
+        return { ...p, details: `${formatBullets(boxLines(p.details))}\n${BULLET} ` };
       }
       return { ...p, details: v };
     });
-  // done typing or talking: turn it into clean bullets (and use "Push day" as the title if there isn't one)
+  // done typing or talking: tidy the bullets they made with return (and use a "Push day" line as the title if there isn't one)
   const tidyDetails = () =>
     setF((p) => {
-      const lines = bulletLines(p.details);
+      const lines = boxLines(p.details);
       if (!lines.length) return { ...p, details: '' };
-      if (!p.text.trim()) {
+      if (!p.text.trim() && lines.length > 1) {
         const session = sessionFromLines(lines, '');
-        if (session.title && session.lines.length < lines.length) return { ...p, text: session.title, details: formatBullets(session.lines) };
+        if (session.title && session.lines.length < lines.length) return { ...p, text: session.title, details: formatBox(session.lines) };
       }
-      return { ...p, details: formatBullets(lines) };
+      return { ...p, details: formatBox(lines) };
     });
 
   const placeholder: Record<Category, string> = {
@@ -281,7 +283,7 @@ export function EntryEditor({
                     multiline
                     scrollEnabled={false}
                     autoCapitalize="sentences"
-                    placeholder={'Type or tap the mic and talk it out:\nBench 185, 3 sets of 8. Then incline dumbbell 60s 3x12. Then cable flies.'}
+                    placeholder={'Tap the mic and talk. Hit return for the next bullet.\nSled push to the tape and back, then burpee broad jumps, 3 rounds'}
                     placeholderTextColor={t.textFaint}
                     accessibilityLabel="What you did"
                     style={{
@@ -300,7 +302,7 @@ export function EntryEditor({
                     }}
                   />
                   <Body dim style={{ fontSize: 13 }}>
-                    It turns into bullet points when you tap out of the box. Each exercise gets its own line.
+                    Hit return to start a new bullet. Talking won’t split it up, so a whole circuit can go on one bullet.
                   </Body>
                 </View>
                 {workoutLifts.length ? (

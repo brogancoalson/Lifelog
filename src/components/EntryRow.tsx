@@ -23,18 +23,26 @@ export function entryDetails(e: Entry): string {
   return parts.join(' · ');
 }
 
-/** A workout's lines as bullets, cut off after `max` with "+N more". */
-export function WorkoutBullets({ details, max = 4, size = 13 }: { details?: string; max?: number; size?: number }) {
+/** A workout's lines as bullets (one line shows as plain text), cut off after `max` with "+N more". */
+export function WorkoutBullets({ details, max = 4, size = 13, clamp = 2 }: { details?: string; max?: number; size?: number; clamp?: number }) {
   const t = useTheme();
   const lines = detailLines(details);
   if (!lines.length) return null;
   const shown = lines.length > max + 1 ? lines.slice(0, max) : lines;
+  const style = { flex: 1, color: t.textDim, fontSize: size, lineHeight: size + 5 };
+  if (lines.length === 1) {
+    return (
+      <Text style={style} numberOfLines={clamp ? clamp + 1 : undefined}>
+        {lines[0]}
+      </Text>
+    );
+  }
   return (
     <View style={{ gap: 2 }}>
       {shown.map((l, i) => (
         <View key={i} style={{ flexDirection: 'row', gap: 6 }}>
           <Text style={{ color: t.textFaint, fontSize: size, lineHeight: size + 5 }}>•</Text>
-          <Text style={{ flex: 1, color: t.textDim, fontSize: size, lineHeight: size + 5 }} numberOfLines={2}>
+          <Text style={style} numberOfLines={clamp || undefined}>
             {l}
           </Text>
         </View>

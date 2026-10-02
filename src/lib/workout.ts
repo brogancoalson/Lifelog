@@ -276,6 +276,24 @@ export function bulletLines(text: string): string[] {
 
 export const BULLET = '•';
 
+/**
+ * The workout box's lines exactly as written: a new bullet only where they hit return.
+ * Talking into it never splits anything, so a whole circuit can be one bullet.
+ */
+export function boxLines(text: string): string[] {
+  return text
+    .replace(/\r/g, '')
+    .split('\n')
+    .map((l) => l.replace(/^\s*(?:[•●▪◦‣*–—-]+|\d{1,2}[.)](?=\s))\s*/, '').replace(/\s+$/, '').trim())
+    .filter((l) => l && !/^[\s.,;:!?]+$/.test(l))
+    .slice(0, 60);
+}
+
+/** The box text after tapping out: one line stays plain, two or more become bullets. */
+export function formatBox(lines: string[]): string {
+  return lines.length === 1 ? lines[0] : formatBullets(lines);
+}
+
 /** Lines -> the text shown in the box: "• Bench 185 3x8\n• Squats 225 3x5". */
 export function formatBullets(lines: string[]): string {
   return lines.map((l) => `${BULLET} ${l}`).join('\n');
@@ -321,6 +339,8 @@ const DAY_OF: Record<string, string> = {
 };
 const CARDIO_LINE = /\b(ran|run|running|jog|jogged|jogging|miles?|bike|biked|biking|cycling|swim|swam|swimming|stair ?master|stairs|treadmill|elliptical|rower|rowing machine|walk|walked|walking|sprints?|hike|hiked|cardio)\b/i;
 
+const CONDITIONING = /\b(sled|burpees?|wall ?balls?|box jumps?|broad jumps?|kettlebells?|kb swings?|swings|battle ropes?|farmers? (?:carry|carries|walk)|thrusters?|jump rope|double unders|mountain climbers|jumping jacks|rounds?|amrap|emom|wod|tabata|hiit|metcon|conditioning)\b/i;
+
 function lineGroups(line: string): Group[] {
   const lifts = parseLifts(line);
   if (CARDIO_LINE.test(line) && !lifts.length) return ['cardio'];
@@ -361,6 +381,9 @@ export function autoTitle(lines: string[]): string | undefined {
   const lifting: Group[] = order.filter((g) => g !== 'cardio' && g !== 'other');
   const cardio = order.includes('cardio');
   if (!lifting.length) {
+    // sleds, burpees, wall balls, rounds: conditioning, not a run
+    if (lines.some((l) => /\bcircuits?\b/i.test(l))) return 'Circuits';
+    if (lines.some((l) => CONDITIONING.test(l))) return 'Conditioning';
     if (!cardio) return undefined;
     return lines.every((l) => !CARDIO_LINE.test(l) || /\b(ran|run|running|jog|jogged|jogging)\b/i.test(l)) ? 'Run' : 'Cardio';
   }

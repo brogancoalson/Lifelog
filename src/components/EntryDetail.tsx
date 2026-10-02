@@ -83,7 +83,7 @@ export function EntryDetail({ entry, onPress }: { entry: Entry; onPress: () => v
       </View>
       {entry.details ? (
         <View style={{ borderTopWidth: 1, borderTopColor: t.border, paddingTop: 8 }}>
-          <WorkoutBullets details={entry.details} max={60} size={14} />
+          <WorkoutBullets details={entry.details} max={60} size={14} clamp={0} />
         </View>
       ) : null}
       <View style={{ borderTopWidth: 1, borderTopColor: t.border, paddingTop: 6 }}>
