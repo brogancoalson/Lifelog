@@ -47,7 +47,8 @@ const NUM_WORDS: Record<string, string> = { one: '1', two: '2', three: '3', four
 /** oz in one container of water */
 const CONTAINER_OZ = (what: string) => (/glass|cup/i.test(what) ? 8 : /can|mug/i.test(what) ? 12 : 16.9);
 
-function minutesIn(s0: string): number | undefined {
+/** How long something took, from words: "2 hours", "1h30", "an hour and a half", "45 min". */
+export function minutesIn(s0: string): number | undefined {
   // "seven hours" -> "7 hours"
   const s = s0.replace(/\b(forty[- ]five|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|fifteen|twenty|thirty|forty|fifty|sixty|ninety)\b(?=\s+(?:and a half\s+)?(?:hours?|hrs?|minutes?|mins?)\b)/gi, (w) => NUM_WORDS[w.toLowerCase()]);
   // "2h30", "1h 15m"

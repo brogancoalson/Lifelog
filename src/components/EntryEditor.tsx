@@ -4,6 +4,8 @@ import { AWARD_AREAS, AWARD_ORDER, CATEGORIES, CATEGORY_ORDER, MOOD_LABELS } fro
 import { addDays, prettyDay, toDay, toTime } from '../lib/dates';
 import { matchBucket } from '../lib/money';
 import { estimateNutrition } from '../lib/nutrition';
+import { minutesIn } from '../lib/quickParse';
+import { fmtMinutes } from '../lib/stats';
 import { normalizeEntry } from '../lib/storage';
 import { useStore } from '../lib/store';
 import { BULLET, boxLines, bulletLines, detailLines, formatBox, formatBullets, liftLine, liftsFromLines, liftSummary, sessionFromLines } from '../lib/workout';
@@ -15,7 +17,8 @@ interface Form {
   category: Category;
   text: string;
   date: string;
-  minutes: string;
+  hours: string; // time spent is typed as hours + minutes
+  mins: string;
   amount: string;
   unit: string;
   kind: string;
@@ -57,7 +60,8 @@ function toForm(e?: Entry, defaults?: Partial<Entry>): Form {
     category: e?.category ?? defaults?.category ?? 'food',
     text: e?.text ?? '',
     date: e?.date ?? defaults?.date ?? toDay(),
-    minutes: s(e?.minutes),
+    hours: e?.minutes && e.minutes >= 60 ? s(Math.floor(e.minutes / 60)) : '',
+    mins: e?.minutes && e.minutes % 60 ? s(Math.round(e.minutes % 60)) : '',
     amount: s(e?.amount),
     unit: e?.unit ?? 'oz',
     kind: e?.kind ?? '',
@@ -109,14 +113,21 @@ export function EntryEditor({
 
   const set = <K extends keyof Form>(k: K, v: Form[K]) => setF((p) => ({ ...p, [k]: v }));
   const cat = f.category;
-  const needsMinutes = !!f.awardArea;
   const moneyVal = n(f.money);
   // the workout box: its lines, the lifts read from them, and the title it gets if none is typed
   const workoutLines = useMemo(() => (cat === 'workout' ? boxLines(f.details) : []), [cat, f.details]);
   const workoutLifts = useMemo(() => liftsIn(workoutLines), [workoutLines]);
   const autoTitle = useMemo(() => (workoutLines.length ? sessionFromLines(workoutLines).title : ''), [workoutLines]);
   const hasWhat = f.text.trim().length > 0 || (cat === 'workout' && workoutLines.length > 0);
-  const canSave = hasWhat && (!needsMinutes || !!n(f.minutes));
+  // a missing time never blocks saving; it's read from the title ("volunteered 2 hours") if the boxes are empty
+  const typedMinutes = (() => {
+    const total = Math.round((n(f.hours) ?? 0) * 60 + (n(f.mins) ?? 0));
+    return total > 0 ? total : undefined;
+  })();
+  const usesTime = !['food', 'drink', 'money', 'mood', 'sleep'].includes(cat) || !!f.awardArea;
+  const titleMinutes = usesTime ? minutesIn(f.text) : undefined;
+  const timeSpent = typedMinutes ?? titleMinutes;
+  const canSave = hasWhat;
 
   const save = () => {
     const today = toDay();
@@ -128,7 +139,7 @@ export function EntryEditor({
       time: entry?.time ?? (f.date === today ? toTime() : undefined),
       category: cat,
       text: f.text,
-      minutes: n(f.minutes),
+      minutes: timeSpent,
       awardArea: f.awardArea,
       validator: f.awardArea ? f.validator : undefined,
     };
@@ -199,6 +210,21 @@ export function EntryEditor({
       }
       return { ...p, details: formatBox(lines) };
     });
+
+  // how long it took: hours and minutes, so 2 hours doesn't have to be typed as 120
+  const timeFields = (
+    <View style={{ gap: 6 }}>
+      <View style={{ flexDirection: 'row', gap: 12 }}>
+        <View style={{ flex: 1 }}>
+          <Field label="Hours" value={f.hours} onChangeText={(v) => set('hours', v)} keyboardType="decimal-pad" placeholder="0" />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Field label="Minutes" value={f.mins} onChangeText={(v) => set('mins', v)} keyboardType="number-pad" placeholder="0" />
+        </View>
+      </View>
+      {!typedMinutes && titleMinutes ? <Body dim style={{ fontSize: 13 }}>Using {fmtMinutes(titleMinutes)} from what you wrote.</Body> : null}
+    </View>
+  );
 
   const placeholder: Record<Category, string> = {
     food: 'Chicken and rice',
@@ -442,14 +468,7 @@ export function EntryEditor({
               </View>
             ) : null}
 
-            {cat !== 'mood' && cat !== 'money' && cat !== 'food' && cat !== 'drink' && cat !== 'sleep' ? (
-              <View style={{ flexDirection: 'row', gap: 12 }}>
-                <View style={{ flex: 1 }}>
-                  <Field label="Minutes" value={f.minutes} onChangeText={(v) => set('minutes', v)} keyboardType="number-pad" placeholder="60" />
-                </View>
-                <View style={{ flex: 1 }} />
-              </View>
-            ) : null}
+            {cat !== 'mood' && cat !== 'money' && cat !== 'food' && cat !== 'drink' && cat !== 'sleep' ? timeFields : null}
 
             <View style={{ gap: 8, padding: space.md, borderRadius: radius.md, borderWidth: 1, borderColor: t.border }}>
               <Label>Counts toward Congressional Award</Label>
@@ -461,15 +480,22 @@ export function EntryEditor({
               </View>
               {f.awardArea ? (
                 <View style={{ gap: 10 }}>
-                  {cat === 'mood' || cat === 'money' || cat === 'food' || cat === 'drink' ? (
-                    <Field label="Minutes" value={f.minutes} onChangeText={(v) => set('minutes', v)} keyboardType="number-pad" placeholder="60" />
-                  ) : null}
-                  {!n(f.minutes) ? <Body dim style={{ fontSize: 13 }}>Add minutes so the hours count.</Body> : null}
+                  {cat === 'mood' || cat === 'money' || cat === 'food' || cat === 'drink' ? timeFields : null}
+                  <Body dim style={{ fontSize: 13 }}>
+                    {timeSpent
+                      ? `${fmtMinutes(timeSpent)} toward ${AWARD_AREAS[f.awardArea].short}.`
+                      : 'No time yet, so this won’t add hours. You can still save it and add the time later.'}
+                  </Body>
                   <Field label="Validator (optional)" value={f.validator} onChangeText={(v) => set('validator', v)} placeholder="Who can sign off on this" />
                 </View>
               ) : null}
             </View>
 
+            {!canSave ? (
+              <Body dim style={{ fontSize: 13, textAlign: 'center' }}>
+                {cat === 'workout' ? 'Add a title or what you did to save.' : 'Fill in “What” to save.'}
+              </Body>
+            ) : null}
             <Button title={entry ? 'Save changes' : 'Save'} onPress={save} disabled={!canSave} />
             {entry ? (
               confirmDelete ? (
