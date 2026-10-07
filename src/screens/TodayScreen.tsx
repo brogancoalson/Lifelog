@@ -126,7 +126,7 @@ export function TodayScreen({
 
         {IS_FIT ? (
           <Body dim style={{ marginTop: -8 }}>
-            {logStreak > 1 ? `${logStreak} days in a row. Keep it up! 🔥` : day === today ? 'You’ve got this today 💗' : ' '}
+            {logStreak > 1 ? `${logStreak} days in a row. Keep it up! 🔥` : day === today ? 'You’ve got this today ☀️' : ' '}
           </Body>
         ) : null}
 
@@ -225,7 +225,7 @@ export function TodayScreen({
               />
               {day === today ? (
                 <Pressable onPress={onGoLog} style={{ alignSelf: 'center', padding: 8 }}>
-                  <Text style={{ color: t.accent, fontFamily: font.labelBold, fontSize: 16, letterSpacing: ls(1), textTransform: upper }}>Open Log</Text>
+                  <Text style={{ color: t.accentInk, fontFamily: font.labelBold, fontSize: 16, letterSpacing: ls(1), textTransform: upper }}>Open Log</Text>
                 </Pressable>
               ) : null}
             </Card>

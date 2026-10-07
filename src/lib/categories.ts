@@ -20,9 +20,9 @@ const FULL: Record<Category, CategoryMeta> = {
   note: { label: 'Note', icon: 'document-text', color: '#6A665F' },
 };
 
-// Fit edition: brighter, happier colors on the pink theme.
+// Fit edition: bright, happy colors that sit well next to the yellow.
 const FIT_COLORS: Partial<Record<Category, string>> = {
-  food: '#F2884B',
+  food: '#F2735A',
   drink: '#3FA7E0',
   workout: '#9B6FE3',
   activity: '#2FB6A0',

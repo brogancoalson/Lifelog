@@ -135,12 +135,12 @@ function Shell() {
                 {IS_FIT ? (
                   // a soft pink pill behind the active tab
                   <View style={{ paddingHorizontal: 18, paddingVertical: 4, borderRadius: 999, backgroundColor: active ? t.surface2 : 'transparent' }}>
-                    <Icon name={active ? item.icon : `${item.icon}-outline`} size={22} color={active ? t.accent : t.textFaint} />
+                    <Icon name={active ? item.icon : `${item.icon}-outline`} size={22} color={active ? t.accentInk : t.textFaint} />
                   </View>
                 ) : (
                   <Icon name={active ? item.icon : `${item.icon}-outline`} size={22} color={active ? t.text : t.textFaint} />
                 )}
-                <Text numberOfLines={1} style={{ fontSize: 12, fontFamily: font.label, letterSpacing: ls(1), textTransform: upper, color: active ? (IS_FIT ? t.accent : t.text) : t.textFaint }}>
+                <Text numberOfLines={1} style={{ fontSize: 12, fontFamily: font.label, letterSpacing: ls(1), textTransform: upper, color: active ? (IS_FIT ? t.accentInk : t.text) : t.textFaint }}>
                   {item.label}
                 </Text>
               </Pressable>

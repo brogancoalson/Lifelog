@@ -15,6 +15,7 @@ const dark = {
   textFaint: '#67635B',
   accent: '#A8352B',
   accentText: '#F0EBE0',
+  accentInk: '#A8352B', // accent when it's used as text
   good: '#5E8C52',
   danger: '#C24A34',
   bubbleMe: '#A8352B',
@@ -34,6 +35,7 @@ const light: typeof dark = {
   textFaint: '#857F75',
   accent: '#8E2A22',
   accentText: '#F4F0E8',
+  accentInk: '#8E2A22',
   good: '#4A7641',
   danger: '#A63A27',
   bubbleMe: '#8E2A22',
@@ -44,47 +46,48 @@ const light: typeof dark = {
 
 export type Theme = typeof dark;
 
-// Fit edition: soft pink, white cards, happy and light.
+// Fit edition: sunny yellow on warm butter cream, white cards. Yellow is too light
+// to read as text, so links and active labels use the deeper accentInk.
 const fitLight: Theme = {
-  bg: '#FFF4F7',
+  bg: '#FFFBEB',
   surface: '#FFFFFF',
-  surface2: '#FFE8F0',
-  border: '#F8D7E3',
-  borderStrong: '#EFB3C9',
-  text: '#3D2933',
-  textDim: '#86677A',
-  textFaint: '#B496A6',
-  accent: '#E8578D',
-  accentText: '#FFFFFF',
+  surface2: '#FFF3C4',
+  border: '#F6E5A6',
+  borderStrong: '#EBCB5E',
+  text: '#3A2F12',
+  textDim: '#7A683A',
+  textFaint: '#AD9B66',
+  accent: '#FFC928',
+  accentText: '#3A2A00',
+  accentInk: '#9A6200',
   good: '#3FA97C',
   danger: '#DC4B65',
-  bubbleMe: '#E8578D',
-  bubbleMeText: '#FFFFFF',
-  bubbleApp: '#FFE8F0',
-  overlay: 'rgba(70,25,45,0.35)',
+  bubbleMe: '#FFC928',
+  bubbleMeText: '#3A2A00',
+  bubbleApp: '#FFF3C4',
+  overlay: 'rgba(60,45,0,0.3)',
 };
 
 const fitDark: Theme = {
-  bg: '#1F1520',
-  surface: '#2B1E2D',
-  surface2: '#38273B',
-  border: '#4A3550',
-  borderStrong: '#634769',
-  text: '#FCEFF5',
-  textDim: '#CDB1C2',
-  textFaint: '#937A8C',
-  accent: '#FF7FAF',
-  accentText: '#2B0E1C',
+  bg: '#1E1A10',
+  surface: '#2A2415',
+  surface2: '#363020',
+  border: '#4A4129',
+  borderStrong: '#62573A',
+  text: '#FFF8E1',
+  textDim: '#D6C79A',
+  textFaint: '#9A8C64',
+  accent: '#FFD23F',
+  accentText: '#2E2300',
+  accentInk: '#FFD23F',
   good: '#6BD0A3',
   danger: '#FF7A8C',
-  bubbleMe: '#FF7FAF',
-  bubbleMeText: '#2B0E1C',
-  bubbleApp: '#38273B',
+  bubbleMe: '#FFD23F',
+  bubbleMeText: '#2E2300',
+  bubbleApp: '#363020',
   overlay: 'rgba(0,0,0,0.55)',
 };
 
-// Typefaces: Bebas Neue for titles and big numbers, Barlow Condensed for labels and buttons.
-// Fit edition: Nunito, a soft rounded font.
 export const font = IS_FIT
   ? { display: 'Nunito_800ExtraBold', label: 'Nunito_700Bold', labelBold: 'Nunito_800ExtraBold' }
   : { display: 'BebasNeue_400Regular', label: 'BarlowCondensed_600SemiBold', labelBold: 'BarlowCondensed_700Bold' };

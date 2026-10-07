@@ -126,7 +126,7 @@ export function AskScreen({ onOpenSettings }: { onOpenSettings: () => void }) {
                   Answers come from Claude. Add your own Claude API key in Settings (a question costs a few cents). Your key stays on this phone.
                 </Body>
                 <Pressable onPress={onOpenSettings} style={{ alignSelf: 'flex-start', paddingVertical: 4 }}>
-                  <Text style={{ color: t.accent, fontFamily: font.labelBold, fontSize: 16, letterSpacing: ls(1), textTransform: upper }}>Open Settings</Text>
+                  <Text style={{ color: t.accentInk, fontFamily: font.labelBold, fontSize: 16, letterSpacing: ls(1), textTransform: upper }}>Open Settings</Text>
                 </Pressable>
               </Card>
             ) : null}

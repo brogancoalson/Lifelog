@@ -19,7 +19,7 @@ Data is saved on the device. Screenshots are stored separately (app files on the
 
 ## Glow Log (the version for friends)
 
-Same app, built as a simple pink food + workout tracker: Today (calories, protein, water, workouts), Log (chat or + by hand), and Coach (AI, optional). No money, trading, award hours, sleep, or mood. Round corners, Nunito font, light pink theme (soft plum in dark mode).
+Same app, built as a simple yellow food + workout tracker: Today (calories, protein, water, workouts), Log (chat or + by hand), and Coach (AI, optional). No money, trading, award hours, sleep, or mood. Round corners, Nunito font, sunny yellow theme (warm dark brown in dark mode).
 
 - Turned on at build time with `EXPO_PUBLIC_EDITION=fit`. The switch lives in `src/edition.ts`; Lifelog builds look exactly the same as before.
 - Theme helpers in `src/theme.ts`: `radius`, `font`, `upper` (caps), `ls` (letter spacing), `ds` (big number sizes) all change with the edition. Use them instead of hard-coded values so both versions stay right.
@@ -27,7 +27,7 @@ Same app, built as a simple pink food + workout tracker: Today (calories, protei
 - Every push to `main` also deploys it to the `glow` alias with EAS Hosting (`deploy_glow_web` in `.eas/workflows/publish.yml`). The link is in that job's output in the Expo dashboard. Send it to them and have them tap Share, then Add to Home Screen.
 - AI is optional: they paste their own Claude API key in Settings. Without one, quick sort still works offline.
 - Build it locally: `EXPO_PUBLIC_EDITION=fit EXPO_OFFLINE=1 npx expo export -p web --clear` (keep `--clear`, or Metro can reuse the other edition's cached build).
-- Pink icons, page title, and home-screen name live in `public-fit/`. `scripts/use-fit-web.mjs` swaps them in during the deploy only.
+- Yellow icons, page title, and home-screen name live in `public-fit/`. `scripts/use-fit-web.mjs` swaps them in during the deploy only.
 
 ## Claude connection
 
