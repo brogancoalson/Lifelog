@@ -7,7 +7,8 @@ import { CATEGORIES, CATEGORY_ORDER } from '../lib/categories';
 import { prettyDay, toDay } from '../lib/dates';
 import { fmtMoney, summarize } from '../lib/stats';
 import { useStore } from '../lib/store';
-import { font, space, useInsets, useTheme } from '../theme';
+import { IS_FIT } from '../edition';
+import { font, space, useInsets, useTheme, upper, ls } from '../theme';
 import type { Category, Entry } from '../types';
 
 type Filter = 'all' | 'award' | Category;
@@ -56,7 +57,7 @@ export function HistoryScreen({ onBack }: { onBack?: () => void }) {
       <View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: space.lg, paddingVertical: space.md, gap: 8 }}>
           <Chip label="All" selected={filter === 'all'} onPress={() => setFilter('all')} />
-          <Chip label="Award hours" icon="medal" selected={filter === 'award'} onPress={() => setFilter('award')} />
+          {IS_FIT ? null : <Chip label="Award hours" icon="medal" selected={filter === 'award'} onPress={() => setFilter('award')} />}
           {CATEGORY_ORDER.map((c) => (
             <Chip
               key={c}
@@ -84,7 +85,7 @@ export function HistoryScreen({ onBack }: { onBack?: () => void }) {
           ].filter(Boolean);
           return (
             <View style={{ paddingTop: space.lg, paddingBottom: 4, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
-              <Text style={{ color: t.text, fontFamily: font.labelBold, fontSize: 19, letterSpacing: 1, textTransform: 'uppercase' }}>{prettyDay(section.day, today)}</Text>
+              <Text style={{ color: t.text, fontFamily: font.labelBold, fontSize: 19, letterSpacing: ls(1), textTransform: upper }}>{prettyDay(section.day, today)}</Text>
               <Text style={{ color: t.textFaint, fontSize: 12, flexShrink: 1, textAlign: 'right' }} numberOfLines={1}>
                 {bits.join(' · ')}
               </Text>

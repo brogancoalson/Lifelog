@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 import type { AppData, Bucket, ChatMessage, Entry, Goal, Settings, Trade, Transfer } from '../types';
+import { IS_FIT } from '../edition';
 import { uid } from './dates';
 import { matchBucket, starterBuckets, FREE } from './money';
 import { estimateNutrition } from './nutrition';
@@ -46,12 +47,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     loadData()
       .then((d) => {
         // first run with buckets: add the starter set once
-        if (!d.settings.bucketsSeeded && d.buckets.length === 0) {
+        if (!IS_FIT && !d.settings.bucketsSeeded && d.buckets.length === 0) {
           d = { ...d, buckets: starterBuckets(), settings: { ...d.settings, bucketsSeeded: true } };
         }
         // Sept 30: Brogan puts $100 of every paycheck into his IRA. Switch his latte factor once, on his phone only
         // (the web version is what his buddy uses), and never again so later edits stick.
-        if (!d.settings.latte100 && Platform.OS !== 'web') {
+        if (!IS_FIT && !d.settings.latte100 && Platform.OS !== 'web') {
           d = {
             ...d,
             buckets: d.buckets.map((b) => (/latte factor/i.test(b.name) ? { ...b, rule: 'fixed' as const, value: 100 } : b)),
@@ -77,7 +78,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         }
         // Oct 1: the circuit workout Brogan told Claude while his phone was put away. Added once, on his phone
         // only (the web version is his buddy's). If he'd already started logging it that day, fill that one in.
-        if (!d.settings.circuitsOct1 && Platform.OS !== 'web') {
+        if (!IS_FIT && !d.settings.circuitsOct1 && Platform.OS !== 'web') {
           const details = [
             'Full-body rollout with a lacrosse ball and roller',
             '90/90 stretches and spider stretches, then rolled out whatever was tight',

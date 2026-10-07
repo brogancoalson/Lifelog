@@ -4,9 +4,16 @@ import { ChatThread, Examples } from '../components/ChatThread';
 import { Body, Card, Title } from '../components/ui';
 import { ask, askMode, type AskMode } from '../lib/ask';
 import { useStore } from '../lib/store';
-import { font, space, useInsets, useTheme } from '../theme';
+import { IS_FIT } from '../edition';
+import { font, space, useInsets, useTheme, upper, ls } from '../theme';
 
-const EXAMPLES = [
+const EXAMPLES = IS_FIT ? [
+  'What’s an easy high-protein snack I could have right now?',
+  'How’s my protein been this week?',
+  'Plan my next workout from what I did this week.',
+  'Am I drinking enough water?',
+  'Give me 3 easy lunch ideas around 500 calories.',
+] : [
   'What should I eat tonight to hit my protein?',
   'Which muscle groups am I neglecting? Plan my next workout.',
   'How was my sleep this last week, and what should I change?',
@@ -61,7 +68,9 @@ export function AskScreen({ onOpenSettings }: { onOpenSettings: () => void }) {
           role: 'app',
           text:
             e?.message === 'NO_AI'
-              ? 'Ask needs a Claude connection to answer. Add your Claude API key in Settings, then ask again.'
+              ? IS_FIT
+                ? 'Coach needs the AI helper to answer. Add a Claude API key in Settings, then ask again.'
+                : 'Ask needs a Claude connection to answer. Add your Claude API key in Settings, then ask again.'
               : e?.message ?? 'Something went wrong. Try again.',
           error: true,
         },
@@ -74,12 +83,12 @@ export function AskScreen({ onOpenSettings }: { onOpenSettings: () => void }) {
   return (
     <View style={{ flex: 1 }}>
       <View style={{ paddingTop: insets.top + space.md, paddingHorizontal: space.lg, paddingBottom: space.sm, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Title>Ask</Title>
+        <Title>{IS_FIT ? 'Coach' : 'Ask'}</Title>
         {data.askChat.length ? (
           confirmClear ? (
             <View style={{ flexDirection: 'row', gap: 14 }}>
               <Pressable onPress={() => setConfirmClear(false)}>
-                <Text style={{ color: t.textDim, fontFamily: font.labelBold, fontSize: 15, letterSpacing: 1, textTransform: 'uppercase' }}>Keep</Text>
+                <Text style={{ color: t.textDim, fontFamily: font.labelBold, fontSize: 15, letterSpacing: ls(1), textTransform: upper }}>Keep</Text>
               </Pressable>
               <Pressable
                 onPress={() => {
@@ -87,12 +96,12 @@ export function AskScreen({ onOpenSettings }: { onOpenSettings: () => void }) {
                   setConfirmClear(false);
                 }}
               >
-                <Text style={{ color: t.danger, fontFamily: font.labelBold, fontSize: 15, letterSpacing: 1, textTransform: 'uppercase' }}>Clear chat</Text>
+                <Text style={{ color: t.danger, fontFamily: font.labelBold, fontSize: 15, letterSpacing: ls(1), textTransform: upper }}>Clear chat</Text>
               </Pressable>
             </View>
           ) : (
             <Pressable onPress={() => setConfirmClear(true)} hitSlop={8}>
-              <Text style={{ color: t.textDim, fontFamily: font.label, fontSize: 14, letterSpacing: 1, textTransform: 'uppercase' }}>New chat</Text>
+              <Text style={{ color: t.textDim, fontFamily: font.label, fontSize: 14, letterSpacing: ls(1), textTransform: upper }}>New chat</Text>
             </Pressable>
           )
         ) : null}
@@ -102,18 +111,22 @@ export function AskScreen({ onOpenSettings }: { onOpenSettings: () => void }) {
         busy={busy}
         busyText={step ?? 'Thinking…'}
         onSend={(text) => send(text)}
-        placeholder="Ask about your data or for advice"
+        placeholder={IS_FIT ? 'Ask your coach anything' : 'Ask about your data or for advice'}
         empty={
           <View style={{ gap: space.md }}>
-            <Body dim>Ask about anything you’ve logged, or ask for advice. It looks up your real numbers first, then gives you a report or a plan. Add your weight and targets under About you in Settings for better advice.</Body>
+            <Body dim>
+              {IS_FIT
+                ? 'Ask about anything you’ve logged, or ask for meal ideas and workout plans. It checks your real numbers first. Add your goals under About you in Settings for better advice.'
+                : 'Ask about anything you’ve logged, or ask for advice. It looks up your real numbers first, then gives you a report or a plan. Add your weight and targets under About you in Settings for better advice.'}
+            </Body>
             {mode === 'none' ? (
               <Card style={{ gap: 8, borderColor: t.accent }}>
-                <Text style={{ color: t.text, fontFamily: font.labelBold, fontSize: 17, letterSpacing: 1, textTransform: 'uppercase' }}>Connect Claude first</Text>
+                <Text style={{ color: t.text, fontFamily: font.labelBold, fontSize: 17, letterSpacing: ls(1), textTransform: upper }}>{IS_FIT ? 'Turn on the AI helper' : 'Connect Claude first'}</Text>
                 <Body dim style={{ fontSize: 14 }}>
                   Answers come from Claude. Add your own Claude API key in Settings (a question costs a few cents). Your key stays on this phone.
                 </Body>
                 <Pressable onPress={onOpenSettings} style={{ alignSelf: 'flex-start', paddingVertical: 4 }}>
-                  <Text style={{ color: t.accent, fontFamily: font.labelBold, fontSize: 16, letterSpacing: 1, textTransform: 'uppercase' }}>Open Settings</Text>
+                  <Text style={{ color: t.accent, fontFamily: font.labelBold, fontSize: 16, letterSpacing: ls(1), textTransform: upper }}>Open Settings</Text>
                 </Pressable>
               </Card>
             ) : null}

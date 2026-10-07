@@ -1,6 +1,7 @@
 import type { AppData, ChatMessage, Entry } from '../types';
 import { callClaude, chatHistory, MODEL_SMART, runWithTools, type Msg, type ToolDef } from './claude';
 import { addDays, isValidDay, toDay } from './dates';
+import { APP_NAME, IS_FIT } from '../edition';
 import { moneyState } from './money';
 import { awardTotals, goalProgress, isWater, toOz } from './stats';
 import { sampler } from './aiParse';
@@ -239,6 +240,33 @@ export function runTool(data: AppData, name: string, input: any): unknown {
 }
 
 function systemPrompt(data: AppData): string {
+  return IS_FIT ? fitPrompt(data) : fullPrompt(data);
+}
+
+/** Coach in the fit edition: food and workouts only, warm and encouraging. */
+function fitPrompt(data: AppData): string {
+  const today = toDay();
+  const weekday = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+  const about = data.settings.aboutMe?.trim();
+  return `You are the Coach tab in ${APP_NAME}, a simple food and workout tracker. You're a warm, upbeat coach who knows everything the user has logged. You do two things:
+1. Answer questions about what they've eaten, drunk, and how they've worked out, with the real numbers.
+2. Give advice from that data: meal and snack ideas to hit their protein, how to balance their week of workouts, what to try next session, and staying hydrated.
+
+Today is ${weekday}, ${today}.
+
+How to work:
+- Look things up with the tools before answering. Never guess or invent numbers; if something isn't logged, say so kindly and say how to log it.
+- Tie suggestions to their numbers ("you're at 62g protein today"), then make them concrete: foods with amounts, exercises with sets and reps based on their last sessions.
+- For food ideas, prefer foods they already eat often (nutrition tool) and get the numbers from food_lookup.
+- Give 2 to 4 suggestions, the most useful first. Be encouraging and honest, never preachy. Celebrate wins and streaks.
+- Use the targets in "About the user" below. If a target they need is missing (like daily protein), say what you assumed and suggest adding it to "About you" in Settings.
+- Keep it healthy: no crash diets, no very low calorie targets, no shaming about food or body. If they mention pain, injury, or anything that sounds like disordered eating, gently suggest talking to a doctor or a professional.
+- Nutrition values marked "estimated" are averages; say "about" for them.
+
+Format for a phone screen as plain text: short paragraphs and simple "- " bullets. No tables, no markdown symbols like ** or #.${about ? `\n\nAbout the user (they wrote this in Settings):\n${about}` : ''}`;
+}
+
+function fullPrompt(data: AppData): string {
   const today = toDay();
   const weekday = new Date().toLocaleDateString('en-US', { weekday: 'long' });
   const about = data.settings.aboutMe?.trim();
@@ -265,6 +293,9 @@ Format for a phone screen as plain text: short paragraphs, simple "- " bullets, 
 
 export type AskMode = 'key' | 'preview' | 'none';
 
+// The fit edition has no money or trading data to look up.
+const activeTools = IS_FIT ? TOOLS.filter((x) => x.name !== 'money' && x.name !== 'trades') : TOOLS;
+
 export async function askMode(data: AppData): Promise<AskMode> {
   if (data.settings.claudeKey) return 'key';
   if (await sampler()) return 'preview';
@@ -281,7 +312,7 @@ export async function ask(question: string, history: ChatMessage[], data: AppDat
       model: MODEL_SMART,
       system: systemPrompt(data),
       messages,
-      tools: TOOLS,
+      tools: activeTools,
       execute: (name, input) => runTool(data, name, input),
       onStep,
     });
@@ -293,7 +324,7 @@ export async function ask(question: string, history: ChatMessage[], data: AppDat
     const res = await s(turns, {
       modelTier: 'default',
       cache: false,
-      tools: TOOLS.map((t) => ({
+      tools: activeTools.map((t) => ({
         name: t.name,
         description: t.description,
         inputSchema: t.input_schema,

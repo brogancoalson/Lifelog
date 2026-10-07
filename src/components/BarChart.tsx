@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import type { Bucket } from '../lib/trackers';
-import { font, useTheme } from '../theme';
+import { font, useTheme, upper, ls, radius } from '../theme';
 
 /**
  * Single-series column chart built from Views (no chart library needed).
@@ -36,11 +36,11 @@ export function BarChart({
     <View style={{ gap: 10 }}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', minHeight: 22 }}>
         {sel ? (
-          <Text style={{ color: t.text, fontFamily: font.labelBold, fontSize: 16, letterSpacing: 0.8, textTransform: 'uppercase' }}>
+          <Text style={{ color: t.text, fontFamily: font.labelBold, fontSize: 16, letterSpacing: ls(0.8), textTransform: upper }}>
             {sel.long}: {sel.value === null ? 'nothing logged' : format(sel.value)}
           </Text>
         ) : (
-          <Text style={{ color: t.textFaint, fontFamily: font.label, fontSize: 14, letterSpacing: 0.8, textTransform: 'uppercase' }}>
+          <Text style={{ color: t.textFaint, fontFamily: font.label, fontSize: 14, letterSpacing: ls(0.8), textTransform: upper }}>
             {logged ? 'Tap a bar for its number' : 'Nothing logged in this range'}
           </Text>
         )}
@@ -65,13 +65,13 @@ export function BarChart({
                 style={{ flex: 1, alignItems: 'center' }}
               >
                 <View style={{ height: posH, width: '100%', maxWidth: 24, justifyContent: 'flex-end' }}>
-                  {v > 0 ? <View style={{ height: h, backgroundColor: color, opacity: dim ? 0.35 : 1 }} /> : null}
+                  {v > 0 ? <View style={{ height: h, backgroundColor: color, opacity: dim ? 0.35 : 1, borderTopLeftRadius: Math.min(radius.sm, 6), borderTopRightRadius: Math.min(radius.sm, 6) }} /> : null}
                 </View>
                 <View style={{ height: negH, width: '100%', maxWidth: 24 }}>
-                  {v < 0 ? <View style={{ height: h, backgroundColor: negativeColor ?? color, opacity: dim ? 0.35 : 1 }} /> : null}
+                  {v < 0 ? <View style={{ height: h, backgroundColor: negativeColor ?? color, opacity: dim ? 0.35 : 1, borderBottomLeftRadius: Math.min(radius.sm, 6), borderBottomRightRadius: Math.min(radius.sm, 6) }} /> : null}
                 </View>
                 {active ? (
-                  <View style={{ position: 'absolute', top: 0, bottom: 0, width: '100%', maxWidth: 24, borderWidth: 1, borderColor: t.text, opacity: 0.5 }} />
+                  <View style={{ position: 'absolute', top: 0, bottom: 0, width: '100%', maxWidth: 24, borderWidth: 1, borderColor: t.text, borderRadius: Math.min(radius.sm, 6), opacity: 0.5 }} />
                 ) : null}
               </Pressable>
             );
@@ -92,7 +92,7 @@ export function BarChart({
       ) : (
         <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
           {[0, Math.floor((data.length - 1) / 2), data.length - 1].map((i, n) => (
-            <Text key={n} style={{ color: t.textFaint, fontSize: 12, fontFamily: font.label, letterSpacing: 0.5, textTransform: 'uppercase' }}>
+            <Text key={n} style={{ color: t.textFaint, fontSize: 12, fontFamily: font.label, letterSpacing: ls(0.5), textTransform: upper }}>
               {data[i].long.replace('Week of ', '')}
             </Text>
           ))}

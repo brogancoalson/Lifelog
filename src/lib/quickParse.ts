@@ -319,6 +319,17 @@ export function quickParse(message: string, now: Date = new Date()): Entry[] {
     const last0 = out[out.length - 1];
     const session = last0 ? sessions.get(last0) : undefined;
     // "took about an hour", "1 hr at the gym": how long that session was
+    // "went on a walk, 45 min": the time belongs to the walk, not a new entry
+    if (!session && last0 && !tag && isDurationOnly(chunk) && last0.minutes === undefined && (last0.category === 'activity' || last0.category === 'workout') && (saidYesterday || lastNight ? yesterday : today) === last0.date) {
+      last0.minutes = minutesIn(chunk);
+      // same award guess as when the time is said in one go
+      if (!last0.awardArea) {
+        if (last0.category === 'workout') last0.awardArea = 'fitness';
+        else if (RE.service.test(last0.text)) last0.awardArea = 'service';
+        else if (RE.personal.test(last0.text)) last0.awardArea = 'personal';
+      }
+      continue;
+    }
     if (session && last0 && !tag && isDurationOnly(chunk) && (saidYesterday || lastNight ? yesterday : today) === last0.date) {
       last0.minutes = minutesIn(chunk);
       last0.awardArea = last0.awardArea ?? 'fitness';

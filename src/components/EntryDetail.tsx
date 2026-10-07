@@ -3,7 +3,7 @@ import { Pressable, Text, View } from 'react-native';
 import { AWARD_AREAS, CATEGORIES, MOOD_LABELS } from '../lib/categories';
 import { prettyTime } from '../lib/dates';
 import { fmtAmount, fmtMinutes, fmtMoney } from '../lib/stats';
-import { font, useTheme } from '../theme';
+import { font, useTheme, upper, ls, radius } from '../theme';
 import type { Entry } from '../types';
 import { WorkoutBullets } from './EntryRow';
 import { CategoryDot, Icon } from './ui';
@@ -12,7 +12,7 @@ function Row({ k, v, color }: { k: string; v: string; color?: string }) {
   const t = useTheme();
   return (
     <View style={{ flexDirection: 'row', gap: 12, paddingVertical: 3 }}>
-      <Text style={{ width: 86, color: t.textFaint, fontSize: 13, fontFamily: font.label, letterSpacing: 0.8, textTransform: 'uppercase' }}>{k}</Text>
+      <Text style={{ width: 86, color: t.textFaint, fontSize: 13, fontFamily: font.label, letterSpacing: ls(0.8), textTransform: upper }}>{k}</Text>
       <Text style={{ flex: 1, color: color ?? t.text, fontSize: 14, lineHeight: 19 }}>{v}</Text>
     </View>
   );
@@ -66,6 +66,7 @@ export function EntryDetail({ entry, onPress }: { entry: Entry; onPress: () => v
         backgroundColor: t.surface,
         borderWidth: 1,
         borderColor: t.border,
+        borderRadius: radius.md,
         padding: 12,
         gap: 8,
         opacity: pressed ? 0.7 : 1,
@@ -75,7 +76,7 @@ export function EntryDetail({ entry, onPress }: { entry: Entry; onPress: () => v
         <CategoryDot color={meta.color} icon={meta.icon} size={30} />
         <View style={{ flex: 1 }}>
           <Text style={{ color: t.text, fontSize: 16, fontWeight: '700' }}>{entry.text}</Text>
-          <Text style={{ color: t.textDim, fontSize: 12, fontFamily: font.label, letterSpacing: 0.8, textTransform: 'uppercase' }}>
+          <Text style={{ color: t.textDim, fontSize: 12, fontFamily: font.label, letterSpacing: ls(0.8), textTransform: upper }}>
             {[prettyTime(entry.time), meta.label].filter(Boolean).join(' · ')}
           </Text>
         </View>

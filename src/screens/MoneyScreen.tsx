@@ -7,7 +7,7 @@ import { addDays, prettyDay, toDay, toTime, uid } from '../lib/dates';
 import { FREE, grossPaycheck, moneyState, planSplit, round2, ruleText, type BucketState } from '../lib/money';
 import { fmtMoney } from '../lib/stats';
 import { useStore } from '../lib/store';
-import { font, space, useTheme } from '../theme';
+import { font, space, useTheme, upper, ls, ds } from '../theme';
 import type { Bucket, BucketRule, Entry } from '../types';
 import { TrackerScreen } from './TrackerScreen';
 
@@ -135,7 +135,7 @@ function IncomeSheet({ visible, onClose }: { visible: boolean; onClose: () => vo
               return (
                 <View key={b.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6, borderTopWidth: i ? 1 : 0, borderTopColor: t.border }}>
                   <View style={{ flex: 1 }}>
-                    <Text style={{ color: t.text, fontFamily: font.labelBold, fontSize: 16, letterSpacing: 0.6, textTransform: 'uppercase' }}>{b.name}</Text>
+                    <Text style={{ color: t.text, fontFamily: font.labelBold, fontSize: 16, letterSpacing: ls(0.6), textTransform: upper }}>{b.name}</Text>
                     <Text style={{ color: short ? t.danger : t.textFaint, fontSize: 12 }}>{short ? `${fmtMoney(short)} short: paycheck ran out` : ruleText(b, pay)}</Text>
                   </View>
                   <View style={{ width: 96 }}>
@@ -156,8 +156,8 @@ function IncomeSheet({ visible, onClose }: { visible: boolean; onClose: () => vo
       </View>
 
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', borderTopWidth: 1, borderTopColor: t.border, paddingTop: 12 }}>
-        <Text style={{ color: t.textDim, fontFamily: font.label, fontSize: 16, letterSpacing: 1, textTransform: 'uppercase' }}>Left over to spend freely</Text>
-        <Text style={{ color: left < 0 ? t.danger : t.text, fontFamily: font.display, fontSize: 34 }}>{money(left)}</Text>
+        <Text style={{ color: t.textDim, fontFamily: font.label, fontSize: 16, letterSpacing: ls(1), textTransform: upper }}>Left over to spend freely</Text>
+        <Text style={{ color: left < 0 ? t.danger : t.text, fontFamily: font.display, fontSize: ds(34) }}>{money(left)}</Text>
       </View>
       {left < 0 ? <Body style={{ color: t.danger, fontSize: 13 }}>The buckets add up to more than this money. Lower one of them.</Body> : null}
       <Button title="Save" onPress={save} disabled={!valid || left < 0} />
@@ -228,7 +228,7 @@ function BucketEditor({ visible, bucket, onClose }: { visible: boolean; bucket?:
       {bucket ? (
         <Card style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
           <Label>In this bucket now</Label>
-          <Text style={{ color: bucket.balance < 0 ? t.danger : t.text, fontFamily: font.display, fontSize: 32 }}>{money(bucket.balance)}</Text>
+          <Text style={{ color: bucket.balance < 0 ? t.danger : t.text, fontFamily: font.display, fontSize: ds(32) }}>{money(bucket.balance)}</Text>
         </Card>
       ) : null}
       <Field label="Name" value={name} onChangeText={setName} placeholder="Groceries" />
@@ -278,7 +278,7 @@ function BucketEditor({ visible, bucket, onClose }: { visible: boolean; bucket?:
                 <Text style={{ color: t.text, flex: 1 }} numberOfLines={1}>
                   {prettyDay(e.date)} · {inAmt ? `from ${e.text}` : e.text}
                 </Text>
-                <Text style={{ color: val >= 0 ? t.good : t.danger, fontFamily: font.display, fontSize: 20 }}>
+                <Text style={{ color: val >= 0 ? t.good : t.danger, fontFamily: font.display, fontSize: ds(20) }}>
                   {val >= 0 ? '+' : '−'}
                   {fmtMoney(val)}
                 </Text>
@@ -391,7 +391,7 @@ function BucketsSection() {
     <View style={{ gap: space.lg }}>
       <Card style={{ gap: 6, borderColor: t.borderStrong }}>
         <Label>Free to spend</Label>
-        <Text style={{ color: st.free < 0 ? t.danger : t.text, fontFamily: font.display, fontSize: 56, lineHeight: 58 }}>{money(st.free)}</Text>
+        <Text style={{ color: st.free < 0 ? t.danger : t.text, fontFamily: font.display, fontSize: ds(56), lineHeight: ds(58) }}>{money(st.free)}</Text>
         <Text style={{ color: t.textDim, fontSize: 13 }}>
           {money(st.totalInBuckets)} in buckets{lp ? ` · last paycheck ${prettyDay(lp.date).toLowerCase()}: ${fmtMoney(lp.money ?? 0)}` : ''}
         </Text>
@@ -410,7 +410,7 @@ function BucketsSection() {
           <Label>Buckets</Label>
           <Pressable onPress={() => setAdding(true)} hitSlop={8} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
             <Icon name="add" size={16} color={t.accent} />
-            <Text style={{ color: t.accent, fontFamily: font.labelBold, fontSize: 15, letterSpacing: 1, textTransform: 'uppercase' }}>Add bucket</Text>
+            <Text style={{ color: t.accent, fontFamily: font.labelBold, fontSize: 15, letterSpacing: ls(1), textTransform: upper }}>Add bucket</Text>
           </Pressable>
         </View>
         {st.buckets.map((b) => {
@@ -421,8 +421,8 @@ function BucketsSection() {
               <Card style={{ gap: 8 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   <Icon name={save ? 'trending-up' : 'wallet'} size={18} color={save ? t.good : t.textDim} />
-                  <Text style={{ flex: 1, color: t.text, fontFamily: font.labelBold, fontSize: 18, letterSpacing: 0.6, textTransform: 'uppercase' }}>{b.bucket.name}</Text>
-                  <Text style={{ color: b.balance < 0 ? t.danger : t.text, fontFamily: font.display, fontSize: 30 }}>{money(b.balance)}</Text>
+                  <Text style={{ flex: 1, color: t.text, fontFamily: font.labelBold, fontSize: 18, letterSpacing: ls(0.6), textTransform: upper }}>{b.bucket.name}</Text>
+                  <Text style={{ color: b.balance < 0 ? t.danger : t.text, fontFamily: font.display, fontSize: ds(30) }}>{money(b.balance)}</Text>
                 </View>
                 {per > 0 && !save ? <ProgressBar value={b.balance / per} color={b.balance < per * 0.25 ? t.danger : t.good} height={6} /> : null}
                 <Text style={{ color: t.textFaint, fontSize: 12 }}>

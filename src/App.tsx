@@ -1,6 +1,8 @@
 import { BarlowCondensed_600SemiBold } from '@expo-google-fonts/barlow-condensed/600SemiBold';
 import { BarlowCondensed_700Bold } from '@expo-google-fonts/barlow-condensed/700Bold';
 import { BebasNeue_400Regular } from '@expo-google-fonts/bebas-neue/400Regular';
+import { Nunito_700Bold } from '@expo-google-fonts/nunito/700Bold';
+import { Nunito_800ExtraBold } from '@expo-google-fonts/nunito/800ExtraBold';
 import { useFonts } from 'expo-font';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useState } from 'react';
@@ -18,12 +20,13 @@ import { TodayScreen } from './screens/TodayScreen';
 import { TradeScreen } from './screens/TradeScreen';
 import { TrackerScreen } from './screens/TrackerScreen';
 import { foodCount } from './lib/foodDb';
+import { IS_FIT } from './edition';
 import type { TrackerKey } from './lib/trackers';
-import { font, useInsets, useTheme } from './theme';
+import { font, useInsets, useTheme, upper, ls } from './theme';
 
 type Tab = 'today' | 'log' | 'money' | 'trade' | 'ask' | 'goals';
 
-const TABS: { key: Tab; label: string; icon: string }[] = [
+const ALL_TABS: { key: Tab; label: string; icon: string }[] = [
   { key: 'today', label: 'Today', icon: 'today' },
   { key: 'log', label: 'Log', icon: 'chatbubble-ellipses' },
   { key: 'money', label: 'Money', icon: 'wallet' },
@@ -32,11 +35,18 @@ const TABS: { key: Tab; label: string; icon: string }[] = [
   { key: 'goals', label: 'Goals', icon: 'trophy' },
 ];
 
+// The fit edition is just food and workouts: Today, Log, and Ask.
+const TABS = IS_FIT
+  ? ALL_TABS.filter((x) => x.key === 'today' || x.key === 'log' || x.key === 'ask').map((x) => (x.key === 'ask' ? { ...x, label: 'Coach' } : x))
+  : ALL_TABS;
+
 function Shell() {
   const t = useTheme();
   const insets = useInsets();
   const { ready } = useStore();
-  const [fontsLoaded, fontError] = useFonts({ BebasNeue_400Regular, BarlowCondensed_600SemiBold, BarlowCondensed_700Bold });
+  const [fontsLoaded, fontError] = useFonts(
+    IS_FIT ? { Nunito_700Bold, Nunito_800ExtraBold } : { BebasNeue_400Regular, BarlowCondensed_600SemiBold, BarlowCondensed_700Bold },
+  );
   const [tab, setTab] = useState<Tab>('today');
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [tracker, setTracker] = useState<TrackerKey | null>(null);
@@ -116,10 +126,21 @@ function Shell() {
                 accessibilityState={{ selected: active }}
                 accessibilityLabel={item.label}
                 onPress={() => setTab(item.key)}
-                style={{ flex: 1, alignItems: 'center', gap: 2, paddingVertical: 6, borderTopWidth: 3, borderTopColor: active ? t.accent : 'transparent' }}
+                style={
+                  IS_FIT
+                    ? { flex: 1, alignItems: 'center', gap: 2, paddingTop: 8, paddingBottom: 4 }
+                    : { flex: 1, alignItems: 'center', gap: 2, paddingVertical: 6, borderTopWidth: 3, borderTopColor: active ? t.accent : 'transparent' }
+                }
               >
-                <Icon name={active ? item.icon : `${item.icon}-outline`} size={22} color={active ? t.text : t.textFaint} />
-                <Text numberOfLines={1} style={{ fontSize: 12, fontFamily: font.label, letterSpacing: 1, textTransform: 'uppercase', color: active ? t.text : t.textFaint }}>
+                {IS_FIT ? (
+                  // a soft pink pill behind the active tab
+                  <View style={{ paddingHorizontal: 18, paddingVertical: 4, borderRadius: 999, backgroundColor: active ? t.surface2 : 'transparent' }}>
+                    <Icon name={active ? item.icon : `${item.icon}-outline`} size={22} color={active ? t.accent : t.textFaint} />
+                  </View>
+                ) : (
+                  <Icon name={active ? item.icon : `${item.icon}-outline`} size={22} color={active ? t.text : t.textFaint} />
+                )}
+                <Text numberOfLines={1} style={{ fontSize: 12, fontFamily: font.label, letterSpacing: ls(1), textTransform: upper, color: active ? (IS_FIT ? t.accent : t.text) : t.textFaint }}>
                   {item.label}
                 </Text>
               </Pressable>

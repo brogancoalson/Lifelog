@@ -9,7 +9,7 @@ import { monthsBetween, toDay } from '../lib/dates';
 import { shareText } from '../lib/share';
 import { awardTotals, fmtHours, goalProgress } from '../lib/stats';
 import { useStore } from '../lib/store';
-import { font, space, useInsets, useTheme } from '../theme';
+import { font, space, useInsets, useTheme, upper, ls, ds, radius } from '../theme';
 import type { AwardArea, Goal } from '../types';
 
 const PERIOD_LABEL = { day: 'today', week: 'this week', month: 'this month', all: 'overall' } as const;
@@ -27,7 +27,7 @@ function AwardCard({ onLogHours }: { onLogHours: (area: AwardArea) => void }) {
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <Icon name="medal" size={22} color={t.accent} />
         <View style={{ flex: 1 }}>
-          <Text style={{ color: t.text, fontSize: 28, lineHeight: 30, fontFamily: font.display, letterSpacing: 1 }}>Congressional Award</Text>
+          <Text style={{ color: t.text, fontSize: ds(28), lineHeight: ds(30), fontFamily: font.display, letterSpacing: ls(1) }}>Congressional Award</Text>
           <Text style={{ color: t.textDim, fontSize: 13 }}>
             {a.level}
             {months !== undefined ? ` · month ${months} of ${a.minMonths} minimum` : ''}
@@ -40,7 +40,7 @@ function AwardCard({ onLogHours }: { onLogHours: (area: AwardArea) => void }) {
         return (
           <Pressable key={area} onPress={() => onLogHours(area)} style={{ gap: 6 }} accessibilityRole="button" accessibilityLabel={`Log ${AWARD_AREAS[area].label} hours`}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-              <Text style={{ color: t.text, fontFamily: font.label, fontSize: 16, letterSpacing: 0.5, textTransform: 'uppercase' }}>{AWARD_AREAS[area].label}</Text>
+              <Text style={{ color: t.text, fontFamily: font.label, fontSize: 16, letterSpacing: ls(0.5), textTransform: upper }}>{AWARD_AREAS[area].label}</Text>
               <Text style={{ color: t.textDim, fontSize: 14, fontVariant: ['tabular-nums'] }}>
                 <Text style={{ color: t.text, fontWeight: '800' }}>{fmtHours(done)}</Text> / {a.targets[area]} hrs
               </Text>
@@ -59,7 +59,7 @@ function AwardCard({ onLogHours }: { onLogHours: (area: AwardArea) => void }) {
           style={{
             width: 22,
             height: 22,
-            borderRadius: 0,
+            borderRadius: radius.pill,
             borderWidth: 2,
             borderColor: a.expeditionDone ? t.accent : t.border,
             backgroundColor: a.expeditionDone ? t.accent : 'transparent',
@@ -110,7 +110,7 @@ function GoalCard({ goal, onEdit }: { goal: Goal; onEdit: () => void }) {
       <Card style={{ gap: 8 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           {done ? <Icon name="checkmark" size={18} color={t.good} /> : null}
-          <Text style={{ color: t.text, fontFamily: font.labelBold, fontSize: 18, letterSpacing: 0.6, textTransform: 'uppercase', flex: 1 }} numberOfLines={2}>
+          <Text style={{ color: t.text, fontFamily: font.labelBold, fontSize: 18, letterSpacing: ls(0.6), textTransform: upper, flex: 1 }} numberOfLines={2}>
             {goal.title}
           </Text>
           <Text style={{ color: t.textDim, fontSize: 12 }}>{PERIOD_LABEL[goal.period]}</Text>

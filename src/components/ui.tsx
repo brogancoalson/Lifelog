@@ -12,7 +12,7 @@ import {
   View,
   ViewStyle,
 } from 'react-native';
-import { font, radius, space, Theme, useTheme } from '../theme';
+import { font, radius, space, Theme, useTheme, upper, ls, ds } from '../theme';
 
 export type IconName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -24,7 +24,7 @@ export function Icon({ name, size = 20, color }: { name: string; size?: number; 
 export function Title({ children, style }: { children: React.ReactNode; style?: StyleProp<TextStyle> }) {
   const t = useTheme();
   return (
-    <Text style={[{ color: t.text, fontSize: 40, lineHeight: 42, fontFamily: font.display, letterSpacing: 1, textTransform: 'uppercase' }, style]}>
+    <Text style={[{ color: t.text, fontSize: ds(40), lineHeight: ds(42), fontFamily: font.display, letterSpacing: ls(1), textTransform: upper }, style]}>
       {children}
     </Text>
   );
@@ -35,7 +35,7 @@ export function Label({ children, style }: { children: React.ReactNode; style?: 
   return (
     <Text
       style={[
-        { color: t.textDim, fontSize: 14, fontFamily: font.label, letterSpacing: 1.4, textTransform: 'uppercase' },
+        { color: t.textDim, fontSize: 14, fontFamily: font.label, letterSpacing: ls(1.4), textTransform: upper },
         style,
       ]}
     >
@@ -123,7 +123,7 @@ export function Button({
       ]}
     >
       {loading ? <ActivityIndicator color={fg} size="small" /> : icon ? <Icon name={icon} size={small ? 16 : 18} color={fg} /> : null}
-      <Text style={{ color: fg, fontFamily: font.labelBold, fontSize: small ? 15 : 18, letterSpacing: 1.2, textTransform: 'uppercase' }}>{title}</Text>
+      <Text style={{ color: fg, fontFamily: font.labelBold, fontSize: small ? 15 : 18, letterSpacing: ls(1.2), textTransform: upper }}>{title}</Text>
     </Pressable>
   );
 }
@@ -151,7 +151,7 @@ export function IconButton({
       hitSlop={8}
       onPress={onPress}
       style={({ pressed }) => [
-        { width: 40, height: 40, borderRadius: 0, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.6 : 1 },
+        { width: 40, height: 40, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.6 : 1 },
         style,
       ]}
     >
@@ -194,7 +194,7 @@ export function Chip({
       })}
     >
       {icon ? <Icon name={icon} size={14} color={selected ? c : t.textDim} /> : null}
-      <Text style={{ color: selected ? t.text : t.textDim, fontSize: 14, fontFamily: font.label, letterSpacing: 0.8, textTransform: 'uppercase' }}>
+      <Text style={{ color: selected ? t.text : t.textDim, fontSize: 14, fontFamily: font.label, letterSpacing: ls(0.8), textTransform: upper }}>
         {label}
       </Text>
     </Pressable>
@@ -205,8 +205,8 @@ export function ProgressBar({ value, color, height = 10 }: { value: number; colo
   const t = useTheme();
   const pct = Math.max(0, Math.min(1, value));
   return (
-    <View style={{ height, borderRadius: 0, backgroundColor: t.surface2, overflow: 'hidden' }}>
-      <View style={{ width: `${pct * 100}%`, height: '100%', borderRadius: 0, backgroundColor: color ?? t.accent }} />
+    <View style={{ height, borderRadius: radius.pill, backgroundColor: t.surface2, overflow: 'hidden' }}>
+      <View style={{ width: `${pct * 100}%`, height: '100%', borderRadius: radius.pill, backgroundColor: color ?? t.accent }} />
     </View>
   );
 }
@@ -243,7 +243,7 @@ export function CategoryDot({ color, icon, size = 34 }: { color: string; icon: s
       style={{
         width: size,
         height: size,
-        borderRadius: 0,
+        borderRadius: radius.pill,
         backgroundColor: color + '24',
         alignItems: 'center',
         justifyContent: 'center',
@@ -259,7 +259,7 @@ export function Empty({ icon, title, body }: { icon: string; title: string; body
   return (
     <View style={{ alignItems: 'center', paddingVertical: 32, gap: 8 }}>
       <Icon name={icon} size={28} color={t.textFaint} />
-      <Text style={{ color: t.text, fontFamily: font.labelBold, fontSize: 18, letterSpacing: 1, textTransform: 'uppercase' }}>{title}</Text>
+      <Text style={{ color: t.text, fontFamily: font.labelBold, fontSize: 18, letterSpacing: ls(1), textTransform: upper }}>{title}</Text>
       {body ? <Body dim style={{ textAlign: 'center', maxWidth: 300 }}>{body}</Body> : null}
     </View>
   );

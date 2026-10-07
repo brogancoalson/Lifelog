@@ -28,7 +28,7 @@ import {
   TRACKERS,
   trackerEntries,
 } from '../lib/trackers';
-import { font, space, useInsets, useTheme } from '../theme';
+import { font, space, useInsets, useTheme, upper, ls, ds, radius } from '../theme';
 import type { Category, Entry } from '../types';
 
 interface Stat {
@@ -46,9 +46,9 @@ function StatGrid({ stats }: { stats: Stat[] }) {
   return (
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm }}>
       {stats.map((s) => (
-        <View key={s.label} style={{ flexBasis: '47%', flexGrow: 1, backgroundColor: t.surface, borderWidth: 1, borderColor: t.border, padding: space.md, gap: 2 }}>
-          <Text style={{ color: t.textDim, fontSize: 13, fontFamily: font.label, letterSpacing: 1.2, textTransform: 'uppercase' }}>{s.label}</Text>
-          <Text style={{ color: t.text, fontSize: 32, lineHeight: 34, fontFamily: font.display, letterSpacing: 0.5 }} numberOfLines={1} adjustsFontSizeToFit>
+        <View key={s.label} style={{ flexBasis: '47%', flexGrow: 1, backgroundColor: t.surface, borderWidth: 1, borderColor: t.border, borderRadius: radius.lg, padding: space.md, gap: 2 }}>
+          <Text style={{ color: t.textDim, fontSize: 13, fontFamily: font.label, letterSpacing: ls(1.2), textTransform: upper }}>{s.label}</Text>
+          <Text style={{ color: t.text, fontSize: ds(32), lineHeight: ds(34), fontFamily: font.display, letterSpacing: ls(0.5) }} numberOfLines={1} adjustsFontSizeToFit>
             {s.value}
           </Text>
           {s.sub ? (
@@ -68,7 +68,7 @@ function BreakdownRow({ name, value, fraction, color }: { name: string; value: s
   return (
     <View style={{ gap: 5, paddingVertical: 5 }}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12 }}>
-        <Text style={{ color: t.text, fontSize: 15, fontFamily: font.label, letterSpacing: 0.6, textTransform: 'uppercase', flexShrink: 1 }} numberOfLines={1}>
+        <Text style={{ color: t.text, fontSize: 15, fontFamily: font.label, letterSpacing: ls(0.6), textTransform: upper, flexShrink: 1 }} numberOfLines={1}>
           {name}
         </Text>
         <Text style={{ color: t.textDim, fontSize: 14 }}>{value}</Text>
@@ -197,14 +197,14 @@ export function TrackerScreen({ tracker, onBack, top }: { tracker: TrackerKey; o
         {records.map((r) => (
           <View key={r.name} style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 10, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: t.border }}>
             <View style={{ flex: 1 }}>
-              <Text style={{ color: t.text, fontSize: 16, fontFamily: font.labelBold, letterSpacing: 0.6, textTransform: 'uppercase' }}>{r.name}</Text>
+              <Text style={{ color: t.text, fontSize: 16, fontFamily: font.labelBold, letterSpacing: ls(0.6), textTransform: upper }}>{r.name}</Text>
               <Text style={{ color: t.textFaint, fontSize: 12 }}>
                 {r.sessions} time{r.sessions > 1 ? 's' : ''} · last {prettyDay(r.lastDate, today).toLowerCase()}
                 {r.totalReps ? ` · ${r.totalReps} reps total` : ''}
               </Text>
             </View>
             <View style={{ alignItems: 'flex-end' }}>
-              <Text style={{ color: t.text, fontSize: 22, fontFamily: font.display, letterSpacing: 0.5 }}>
+              <Text style={{ color: t.text, fontSize: ds(22), fontFamily: font.display, letterSpacing: ls(0.5) }}>
                 {r.bestWeight !== undefined ? `${r.bestWeight}${r.bestWeightReps ? ` × ${r.bestWeightReps}` : ''}` : '—'}
               </Text>
               {r.bestE1rm ? <Text style={{ color: t.textFaint, fontSize: 12 }}>est. max {r.bestE1rm} lbs</Text> : null}
@@ -343,7 +343,7 @@ export function TrackerScreen({ tracker, onBack, top }: { tracker: TrackerKey; o
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginLeft: onBack ? -10 : 0 }}>
           {onBack ? <IconButton icon="chevron-back" label="Back to Today" onPress={onBack} size={26} /> : null}
           <Icon name={meta.icon} size={22} color={color} />
-          <Text style={{ color: t.text, fontSize: 40, lineHeight: 42, fontFamily: font.display, letterSpacing: 1, textTransform: 'uppercase', marginLeft: 6 }}>
+          <Text style={{ color: t.text, fontSize: ds(40), lineHeight: ds(42), fontFamily: font.display, letterSpacing: ls(1), textTransform: upper, marginLeft: 6 }}>
             {meta.title}
           </Text>
         </View>
@@ -356,7 +356,7 @@ export function TrackerScreen({ tracker, onBack, top }: { tracker: TrackerKey; o
               <Chip key={r.key} label={r.label} selected={range === r.key} onPress={() => setRange(r.key)} color={t.accent} />
             ))}
           </View>
-          <Text style={{ color: t.textFaint, fontSize: 12, fontFamily: font.label, letterSpacing: 1, textTransform: 'uppercase' }}>
+          <Text style={{ color: t.textFaint, fontSize: 12, fontFamily: font.label, letterSpacing: ls(1), textTransform: upper }}>
             {rangeLabel} · {prettyDay(start, today)} to today
           </Text>
         </View>
@@ -378,7 +378,7 @@ export function TrackerScreen({ tracker, onBack, top }: { tracker: TrackerKey; o
             groups.map((g) => (
               <View key={g.day} style={{ gap: 6 }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', paddingTop: 8 }}>
-                  <Text style={{ color: t.text, fontSize: 19, fontFamily: font.labelBold, letterSpacing: 1, textTransform: 'uppercase' }}>
+                  <Text style={{ color: t.text, fontSize: 19, fontFamily: font.labelBold, letterSpacing: ls(1), textTransform: upper }}>
                     {prettyDay(g.day, today)}
                   </Text>
                   {g.value !== null ? <Text style={{ color: t.textDim, fontSize: 13 }}>{format(g.value)}</Text> : null}
@@ -408,6 +408,7 @@ export function TrackerScreen({ tracker, onBack, top }: { tracker: TrackerKey; o
             bottom: space.lg + insets.bottom,
             width: 56,
             height: 56,
+            borderRadius: radius.pill,
             backgroundColor: t.accent,
             alignItems: 'center',
             justifyContent: 'center',

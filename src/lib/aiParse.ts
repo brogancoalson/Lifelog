@@ -8,6 +8,8 @@ import { awardAreasIn, mentionsAward, stripAwardTag, taggable, tagCoversAll } fr
 import { withEstimate } from './nutrition';
 import { normalizeEntry } from './storage';
 import { detailLines, liftsFromLines } from './workout';
+import { fitOnly, FIT_PROMPT } from './fit';
+import { IS_FIT } from '../edition';
 
 export type SortMode = 'ai-key' | 'ai-server' | 'ai-preview' | 'quick';
 
@@ -62,6 +64,11 @@ function awardSafetyNet(message: string, entries: Entry[]): Entry[] {
 }
 
 export async function sortMessage(message: string, settings: Settings): Promise<SortResult> {
+  const res = await sortAll(message, settings);
+  return { ...res, entries: fitOnly(res.entries) };
+}
+
+async function sortAll(message: string, settings: Settings): Promise<SortResult> {
   const now = new Date();
   const today = toDay(now);
   const time = toTime(now);
@@ -86,7 +93,7 @@ export async function sortMessage(message: string, settings: Settings): Promise<
       const res = await callClaude({
         key: settings.claudeKey!,
         model: MODEL_FAST,
-        system: buildParsePrompt(today, WEEKDAYS[now.getDay()], time),
+        system: (buildParsePrompt(today, WEEKDAYS[now.getDay()], time) + (IS_FIT ? FIT_PROMPT : '')),
         messages: [{ role: 'user', content: message }],
         tools: [{ name: 'save_entries', description: 'Save the structured life-log entries found in the message.', input_schema: ENTRY_JSON_SCHEMA as any }],
         toolChoice: { type: 'tool', name: 'save_entries' },
@@ -112,7 +119,7 @@ export async function sortMessage(message: string, settings: Settings): Promise<
     if (mode === 'ai-preview') {
       const s = await sampler();
       const prompt =
-        buildParsePrompt(today, WEEKDAYS[now.getDay()], time) +
+        (buildParsePrompt(today, WEEKDAYS[now.getDay()], time) + (IS_FIT ? FIT_PROMPT : '')) +
         `\n\nRespond with JSON only, matching this schema:\n${JSON.stringify(ENTRY_JSON_SCHEMA)}\n\nMessage:\n"""${message}"""`;
       const json = await s.json(prompt, { modelTier: 'quick' });
       return { entries: finish(Array.isArray(json?.entries) ? json.entries : []), mode };

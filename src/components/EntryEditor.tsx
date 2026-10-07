@@ -9,7 +9,8 @@ import { fmtMinutes } from '../lib/stats';
 import { normalizeEntry } from '../lib/storage';
 import { useStore } from '../lib/store';
 import { BULLET, boxLines, bulletLines, detailLines, formatBox, formatBullets, liftLine, liftsFromLines, liftSummary, sessionFromLines } from '../lib/workout';
-import { font, radius, space, useInsets, useTheme } from '../theme';
+import { IS_FIT } from '../edition';
+import { font, radius, space, useInsets, useTheme, ls, ds } from '../theme';
 import type { AwardArea, Category, Entry } from '../types';
 import { Body, Button, Chip, Field, IconButton, Label } from './ui';
 
@@ -268,7 +269,7 @@ export function EntryEditor({
             }}
           >
             <IconButton icon="close" label="Close" onPress={onClose} />
-            <Text style={{ color: t.text, fontSize: 26, fontFamily: font.display, letterSpacing: 1.2 }}>{entry ? 'Edit entry' : 'Log something'}</Text>
+            <Text style={{ color: t.text, fontSize: ds(26), fontFamily: font.display, letterSpacing: ls(1.2) }}>{entry ? 'Edit entry' : 'Log something'}</Text>
             <View style={{ width: 40 }} />
           </View>
           <ScrollView
@@ -312,7 +313,11 @@ export function EntryEditor({
                     scrollEnabled={Platform.OS === 'web'}
                     onContentSizeChange={(e) => setBoxHeight(Math.max(150, Math.ceil(e.nativeEvent.contentSize.height) + 2))}
                     autoCapitalize="sentences"
-                    placeholder={'Tap the mic and talk. Hit return for the next bullet.\nSled push to the tape and back, then burpee broad jumps, 3 rounds'}
+                    placeholder={
+                      IS_FIT
+                        ? 'Tap the mic and talk. Hit return for the next bullet.\nHip thrusts 135, 3 sets of 10'
+                        : 'Tap the mic and talk. Hit return for the next bullet.\nSled push to the tape and back, then burpee broad jumps, 3 rounds'
+                    }
                     placeholderTextColor={t.textFaint}
                     accessibilityLabel="What you did"
                     style={{
@@ -470,7 +475,7 @@ export function EntryEditor({
 
             {cat !== 'mood' && cat !== 'money' && cat !== 'food' && cat !== 'drink' && cat !== 'sleep' ? timeFields : null}
 
-            <View style={{ gap: 8, padding: space.md, borderRadius: radius.md, borderWidth: 1, borderColor: t.border }}>
+            {IS_FIT ? null : <View style={{ gap: 8, padding: space.md, borderRadius: radius.md, borderWidth: 1, borderColor: t.border }}>
               <Label>Counts toward Congressional Award</Label>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                 <Chip label="No" selected={!f.awardArea} onPress={() => set('awardArea', undefined)} />
@@ -489,7 +494,7 @@ export function EntryEditor({
                   <Field label="Validator (optional)" value={f.validator} onChangeText={(v) => set('validator', v)} placeholder="Who can sign off on this" />
                 </View>
               ) : null}
-            </View>
+            </View>}
 
             {!canSave ? (
               <Body dim style={{ fontSize: 13, textAlign: 'center' }}>

@@ -11,7 +11,7 @@ import { fmtMoney } from '../lib/stats';
 import { DEFAULT_SYMBOL } from '../lib/storage';
 import { useStore } from '../lib/store';
 import { RANGES, rangeStart, type Bucket, type RangeKey } from '../lib/trackers';
-import { font, space, useInsets, useTheme } from '../theme';
+import { font, space, useInsets, useTheme, upper, ls, ds } from '../theme';
 import type { Trade } from '../types';
 
 const pnlText = (n?: number) => (n === undefined ? '' : `${n >= 0 ? '+' : '−'}${fmtMoney(n)}`);
@@ -179,9 +179,9 @@ function TradeCard({ trade, onPress }: { trade: Trade; onPress: () => void }) {
     <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={`${trade.symbol} ${trade.direction ?? ''} ${pnlText(trade.pnl)}. Edit.`}>
       <Card style={{ gap: 8 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <Text style={{ color: t.text, fontFamily: font.labelBold, fontSize: 18, letterSpacing: 0.8 }}>{trade.symbol}</Text>
+          <Text style={{ color: t.text, fontFamily: font.labelBold, fontSize: 18, letterSpacing: ls(0.8) }}>{trade.symbol}</Text>
           {trade.direction ? (
-            <Text style={{ color: trade.direction === 'long' ? t.good : t.danger, fontFamily: font.label, fontSize: 14, letterSpacing: 1, textTransform: 'uppercase' }}>
+            <Text style={{ color: trade.direction === 'long' ? t.good : t.danger, fontFamily: font.label, fontSize: 14, letterSpacing: ls(1), textTransform: upper }}>
               {trade.direction}
               {trade.contracts ? ` ×${trade.contracts}` : ''}
             </Text>
@@ -190,7 +190,7 @@ function TradeCard({ trade, onPress }: { trade: Trade; onPress: () => void }) {
             {prettyDay(trade.date)}
             {trade.setup ? ` · ${trade.setup}` : ''}
           </Text>
-          {trade.pnl !== undefined ? <Text style={{ color: win ? t.good : t.danger, fontFamily: font.display, fontSize: 26 }}>{pnlText(trade.pnl)}</Text> : null}
+          {trade.pnl !== undefined ? <Text style={{ color: win ? t.good : t.danger, fontFamily: font.display, fontSize: ds(26) }}>{pnlText(trade.pnl)}</Text> : null}
         </View>
         {trade.good ? (
           <Text style={{ color: t.textDim, fontSize: 13 }} numberOfLines={2}>
@@ -251,8 +251,8 @@ function TradesList() {
   const chart = useMemo(() => pnlBuckets(list, start, today), [list, start, today]);
   const tile = (label: string, value: string, sub?: string, color?: string) => (
     <View key={label} style={{ flexBasis: '47%', flexGrow: 1, backgroundColor: t.surface, borderWidth: 1, borderColor: t.border, padding: space.md, gap: 2 }}>
-      <Text style={{ color: t.textDim, fontSize: 13, fontFamily: font.label, letterSpacing: 1.2, textTransform: 'uppercase' }}>{label}</Text>
-      <Text style={{ color: color ?? t.text, fontSize: 32, lineHeight: 34, fontFamily: font.display }}>{value}</Text>
+      <Text style={{ color: t.textDim, fontSize: 13, fontFamily: font.label, letterSpacing: ls(1.2), textTransform: upper }}>{label}</Text>
+      <Text style={{ color: color ?? t.text, fontSize: ds(32), lineHeight: ds(34), fontFamily: font.display }}>{value}</Text>
       {sub ? <Text style={{ color: t.textFaint, fontSize: 12 }} numberOfLines={1}>{sub}</Text> : null}
     </View>
   );
@@ -343,7 +343,7 @@ function Journal({ onOpenTrade }: { onOpenTrade: (t: Trade) => void }) {
           .map((tr) => (
             <Pressable key={tr!.id} onPress={() => onOpenTrade(tr!)} style={{ marginTop: 8, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
               <Icon name="create-outline" size={14} color={t.textDim} />
-              <Text style={{ color: t.textDim, fontFamily: font.labelBold, fontSize: 14, letterSpacing: 0.8, textTransform: 'uppercase' }}>
+              <Text style={{ color: t.textDim, fontFamily: font.labelBold, fontSize: 14, letterSpacing: ls(0.8), textTransform: upper }}>
                 {[tr!.symbol, tr!.direction, pnlText(tr!.pnl)].filter(Boolean).join(' ')} · edit
               </Text>
             </Pressable>
@@ -380,7 +380,7 @@ export function TradeScreen() {
               accessibilityState={{ selected: view === v }}
               style={{ flex: 1, paddingVertical: 10, alignItems: 'center', backgroundColor: view === v ? t.accent : 'transparent' }}
             >
-              <Text style={{ color: view === v ? t.accentText : t.textDim, fontFamily: font.labelBold, fontSize: 15, letterSpacing: 1.2, textTransform: 'uppercase' }}>{v}</Text>
+              <Text style={{ color: view === v ? t.accentText : t.textDim, fontFamily: font.labelBold, fontSize: 15, letterSpacing: ls(1.2), textTransform: upper }}>{v}</Text>
             </Pressable>
           ))}
         </View>

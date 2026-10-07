@@ -15,7 +15,7 @@ function Thumb({ id, size = 64 }: { id: string; size?: number }) {
   const t = useTheme();
   const uri = useImageUri(id);
   return (
-    <View style={{ width: size, height: size, backgroundColor: t.surface2, borderWidth: 1, borderColor: t.border }}>
+    <View style={{ width: size, height: size, backgroundColor: t.surface2, borderWidth: 1, borderColor: t.border, borderRadius: radius.md, overflow: 'hidden' }}>
       {uri ? <Image source={{ uri }} style={{ width: size - 2, height: size - 2 }} resizeMode="cover" /> : null}
     </View>
   );
@@ -89,6 +89,10 @@ export function ChatThread({
                     backgroundColor: mine ? t.bubbleMe : t.bubbleApp,
                     borderWidth: mine ? 0 : 1,
                     borderColor: t.border,
+                    borderRadius: radius.lg,
+                    // the little tail corner on the sender's side
+                    borderBottomRightRadius: mine ? Math.min(radius.lg, 6) : radius.lg,
+                    borderBottomLeftRadius: mine ? radius.lg : Math.min(radius.lg, 6),
                     paddingHorizontal: 14,
                     paddingVertical: 10,
                   }}
@@ -104,7 +108,7 @@ export function ChatThread({
         })}
         {busy ? (
           <View style={{ alignItems: 'flex-start' }}>
-            <View style={{ backgroundColor: t.bubbleApp, borderWidth: 1, borderColor: t.border, paddingHorizontal: 14, paddingVertical: 10 }}>
+            <View style={{ backgroundColor: t.bubbleApp, borderWidth: 1, borderColor: t.border, borderRadius: radius.lg, paddingHorizontal: 14, paddingVertical: 10 }}>
               <Text style={{ color: t.textDim }}>{busyText ?? 'Thinking…'}</Text>
             </View>
           </View>
@@ -187,6 +191,7 @@ export function ChatThread({
             maxHeight: 140,
             backgroundColor: t.surface2,
             color: t.text,
+            borderRadius: radius.lg,
             paddingHorizontal: 14,
             paddingTop: 11,
             paddingBottom: 11,
@@ -201,6 +206,7 @@ export function ChatThread({
           style={({ pressed }) => ({
             width: 42,
             height: 42,
+            borderRadius: radius.pill,
             backgroundColor: t.accent,
             alignItems: 'center',
             justifyContent: 'center',
@@ -223,7 +229,7 @@ export function Examples({ items, onPick }: { items: string[]; onPick: (s: strin
         <Pressable
           key={ex}
           onPress={() => onPick(ex)}
-          style={({ pressed }) => ({ padding: 12, borderWidth: 1, borderColor: t.border, backgroundColor: t.surface, opacity: pressed ? 0.7 : 1 })}
+          style={({ pressed }) => ({ padding: 12, borderRadius: radius.md, borderWidth: 1, borderColor: t.border, backgroundColor: t.surface, opacity: pressed ? 0.7 : 1 })}
         >
           <Text style={{ color: t.text, fontSize: 14 }}>“{ex}”</Text>
         </Pressable>

@@ -4,7 +4,7 @@ import { AWARD_AREAS, CATEGORIES, MOOD_LABELS } from '../lib/categories';
 import { prettyTime } from '../lib/dates';
 import { fmtAmount, fmtMinutes, fmtMoney } from '../lib/stats';
 import { detailLines, liftSummary } from '../lib/workout';
-import { font, useTheme } from '../theme';
+import { font, useTheme, upper, ls, ds } from '../theme';
 import type { Entry } from '../types';
 import { CategoryDot, Icon } from './ui';
 
@@ -87,14 +87,14 @@ export function EntryRow({ entry, onPress, showDate }: { entry: Entry; onPress?:
             {entry.awardArea ? (
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
                 <Icon name="medal" size={12} color={t.accent} />
-                <Text style={{ color: t.accent, fontSize: 13, fontFamily: font.labelBold, letterSpacing: 0.8, textTransform: 'uppercase' }}>{AWARD_AREAS[entry.awardArea].short}</Text>
+                <Text style={{ color: t.accent, fontSize: 13, fontFamily: font.labelBold, letterSpacing: ls(0.8), textTransform: upper }}>{AWARD_AREAS[entry.awardArea].short}</Text>
               </View>
             ) : null}
           </View>
         ) : null}
       </View>
       {typeof entry.money === 'number' ? (
-        <Text style={{ color: entry.money >= 0 ? t.good : t.danger, fontFamily: font.display, fontSize: 24, letterSpacing: 0.5 }}>
+        <Text style={{ color: entry.money >= 0 ? t.good : t.danger, fontFamily: font.display, fontSize: ds(24), letterSpacing: ls(0.5) }}>
           {entry.money >= 0 ? '+' : '−'}
           {fmtMoney(entry.money)}
         </Text>

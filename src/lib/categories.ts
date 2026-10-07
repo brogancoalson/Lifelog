@@ -1,3 +1,4 @@
+import { IS_FIT } from '../edition';
 import type { AwardArea, Category } from '../types';
 
 export interface CategoryMeta {
@@ -6,7 +7,7 @@ export interface CategoryMeta {
   color: string;
 }
 
-export const CATEGORIES: Record<Category, CategoryMeta> = {
+const FULL: Record<Category, CategoryMeta> = {
   food: { label: 'Food', icon: 'restaurant', color: '#B0683A' },
   drink: { label: 'Drink', icon: 'water', color: '#56799A' },
   workout: { label: 'Workout', icon: 'barbell', color: '#A39A8A' },
@@ -19,7 +20,24 @@ export const CATEGORIES: Record<Category, CategoryMeta> = {
   note: { label: 'Note', icon: 'document-text', color: '#6A665F' },
 };
 
-export const CATEGORY_ORDER: Category[] = [
+// Fit edition: brighter, happier colors on the pink theme.
+const FIT_COLORS: Partial<Record<Category, string>> = {
+  food: '#F2884B',
+  drink: '#3FA7E0',
+  workout: '#9B6FE3',
+  activity: '#2FB6A0',
+  note: '#B08AA0',
+};
+
+export const CATEGORIES: Record<Category, CategoryMeta> = IS_FIT
+  ? (Object.fromEntries(
+      (Object.keys(FULL) as Category[]).map((k) => [k, { ...FULL[k], color: FIT_COLORS[k] ?? FULL[k].color }]),
+    ) as Record<Category, CategoryMeta>)
+  : FULL;
+
+
+/** The fit edition only tracks food, drinks, and workouts (plus notes). */
+export const CATEGORY_ORDER: Category[] = IS_FIT ? ['food', 'drink', 'workout', 'note'] : [
   'food',
   'drink',
   'workout',

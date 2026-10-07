@@ -8,10 +8,17 @@ import { awardReply } from '../lib/awardTag';
 import { AWARD_AREAS, CATEGORIES } from '../lib/categories';
 import { prettyDay } from '../lib/dates';
 import { useStore } from '../lib/store';
-import { font, radius, space, useInsets, useTheme } from '../theme';
+import { IS_FIT } from '../edition';
+import { font, radius, space, useInsets, useTheme, upper, ls } from '../theme';
 import type { ChatMessage, Entry } from '../types';
 
-const EXAMPLES = [
+const EXAMPLES = IS_FIT ? [
+  'Greek yogurt with berries and granola for breakfast',
+  'Chicken caesar wrap and an iced latte for lunch',
+  '2 bottles of water',
+  'Glute day: hip thrusts 135 3x10, RDLs, 20 min stairmaster',
+  'Hot girl walk, 45 min',
+] : [
   'Chicken and rice for lunch, 2 bottles of water',
   'Benched 225 for 5 and squatted 315x3, 1 hr at the gym',
   'Volunteered at the food bank 2 hrs',
@@ -118,11 +125,15 @@ export function LogScreen() {
       addEntries(result.entries);
       const days = new Set(result.entries.map((e) => e.date));
       const when = days.size === 1 ? ` for ${prettyDay([...days][0]).toLowerCase()}` : '';
-      reply = `Logged ${result.entries.length} thing${result.entries.length > 1 ? 's' : ''}${when}. Tap one to fix it.`;
-      reply += awardReply(message, result.entries);
+      reply = IS_FIT
+        ? `Yay, logged ${result.entries.length} thing${result.entries.length > 1 ? 's' : ''}${when}! ✨ Tap one to fix it.`
+        : `Logged ${result.entries.length} thing${result.entries.length > 1 ? 's' : ''}${when}. Tap one to fix it.`;
+      if (!IS_FIT) reply += awardReply(message, result.entries);
       if (result.fellBack) reply += ` (AI sorting didn't answer, so I used quick sort.)`;
     } else {
-      reply = "I didn't find anything to log in that. Try something like “2 waters and a protein bar”.";
+      reply = IS_FIT
+        ? 'Hmm, I didn’t see any food, drinks, or workouts in that. Try something like “2 waters and a protein bar”.'
+        : "I didn't find anything to log in that. Try something like “2 waters and a protein bar”.";
     }
     addChat({ role: 'app', text: reply, entryIds: result.entries.map((e) => e.id) });
     setBusy(false);
@@ -157,8 +168,8 @@ export function LogScreen() {
             backgroundColor: t.surface2,
           }}
         >
-          <View style={{ width: 7, height: 7, borderRadius: 0, backgroundColor: mode === 'quick' ? t.textFaint : t.good }} />
-          <Text style={{ color: t.textDim, fontSize: 13, fontFamily: font.label, letterSpacing: 1, textTransform: 'uppercase' }}>{MODE_LABEL[mode]}</Text>
+          <View style={{ width: 7, height: 7, borderRadius: radius.pill, backgroundColor: mode === 'quick' ? t.textFaint : t.good }} />
+          <Text style={{ color: t.textDim, fontSize: 13, fontFamily: font.label, letterSpacing: ls(1), textTransform: upper }}>{MODE_LABEL[mode]}</Text>
         </View>
       </View>
 
@@ -172,8 +183,9 @@ export function LogScreen() {
         {!data.chat.length ? (
           <View style={{ gap: space.md }}>
             <Body dim>
-              Tell me anything: what you ate, drank, lifted, did, spent, made, or how you feel. One message can cover a bunch of things. On
-              iPhone, tap the mic on your keyboard to talk instead of type.
+              {IS_FIT
+                ? 'Hi! Just tell me what you ate, drank, or how you worked out, like you’re texting a friend. One message can cover a bunch of things. Tap the mic on your keyboard to talk instead of type. Or hit + to add something by hand.'
+                : 'Tell me anything: what you ate, drank, lifted, did, spent, made, or how you feel. One message can cover a bunch of things. On iPhone, tap the mic on your keyboard to talk instead of type.'}
             </Body>
             <View style={{ gap: 8 }}>
               {EXAMPLES.map((ex) => (
@@ -208,8 +220,9 @@ export function LogScreen() {
                   borderWidth: mine ? 0 : 1,
                   borderColor: t.border,
                   borderRadius: radius.lg,
-                  borderBottomRightRadius: 0,
-                  borderBottomLeftRadius: 0,
+                  // the little tail corner on the sender's side
+                  borderBottomRightRadius: mine ? Math.min(radius.lg, 6) : radius.lg,
+                  borderBottomLeftRadius: mine ? radius.lg : Math.min(radius.lg, 6),
                   paddingHorizontal: 14,
                   paddingVertical: 10,
                 }}
@@ -220,7 +233,7 @@ export function LogScreen() {
                 {!mine && !m.undone && entries.length ? <MessageEntries entries={entries} onEdit={setEditing} /> : null}
                 {!mine && !m.undone && entries.length ? (
                   <Pressable onPress={() => undo(m)} style={{ alignSelf: 'flex-start', paddingTop: 8 }} accessibilityRole="button">
-                    <Text style={{ color: t.textDim, fontSize: 14, fontFamily: font.labelBold, letterSpacing: 1, textTransform: 'uppercase' }}>Undo</Text>
+                    <Text style={{ color: t.textDim, fontSize: 14, fontFamily: font.labelBold, letterSpacing: ls(1), textTransform: upper }}>Undo</Text>
                   </Pressable>
                 ) : null}
               </View>
@@ -270,7 +283,7 @@ export function LogScreen() {
           }}
           value={text}
           onChangeText={setText}
-          placeholder="What did you do?"
+          placeholder={IS_FIT ? 'What did you eat or do?' : 'What did you do?'}
           placeholderTextColor={t.textFaint}
           multiline
           onSubmitEditing={() => send()}
@@ -287,7 +300,7 @@ export function LogScreen() {
             maxHeight: 120,
             backgroundColor: t.surface2,
             color: t.text,
-            borderRadius: 0,
+            borderRadius: radius.lg,
             paddingHorizontal: 14,
             paddingTop: 11,
             paddingBottom: 11,
@@ -302,7 +315,7 @@ export function LogScreen() {
           style={({ pressed }) => ({
             width: 42,
             height: 42,
-            borderRadius: 0,
+            borderRadius: radius.pill,
             backgroundColor: t.accent,
             alignItems: 'center',
             justifyContent: 'center',

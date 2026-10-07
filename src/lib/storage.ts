@@ -3,7 +3,10 @@ import type { Allocation, AppData, Bucket, ChatMessage, Entry, Goal, Lift, Setti
 import { isAwardArea, isCategory } from './categories';
 import { isValidDay, toDay, toTime, uid } from './dates';
 
-const KEY = 'lifelog:data:v1';
+import { IS_FIT } from '../edition';
+
+// The fit edition keeps its own log, so it never mixes with Lifelog in the same browser.
+const KEY = IS_FIT ? 'fitlog:data:v1' : 'lifelog:data:v1';
 
 /** What Brogan trades; used when a trade doesn't name a symbol. */
 export const DEFAULT_SYMBOL = 'MNQ';

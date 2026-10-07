@@ -2,6 +2,7 @@
 # Every push to main:
 #   1. publishes the app for Expo Go on the iPhone
 #   2. deploys the web version (for Add to Home Screen) with EAS Hosting
+#   3. deploys Glow Log, the food + workout version, to its own "glow" link
 name: Publish to phone
 
 on:
@@ -22,3 +23,18 @@ jobs:
     environment: production
     params:
       prod: true
+
+  # Glow Log: the pink food + workout version for friends. Same code, built with
+  # EXPO_PUBLIC_EDITION=fit. Goes to its own "glow" link, never the main one.
+  deploy_glow_web:
+    name: Deploy Glow Log (web)
+    type: deploy
+    environment: production
+    env:
+      EXPO_PUBLIC_EDITION: fit
+    params:
+      alias: glow
+    hooks:
+      after_install_node_modules:
+        - name: Switch to Glow Log
+          run: node scripts/use-fit-web.mjs

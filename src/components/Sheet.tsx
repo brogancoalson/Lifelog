@@ -1,6 +1,6 @@
 import React from 'react';
 import { KeyboardAvoidingView, Modal, Platform, ScrollView, Text, View } from 'react-native';
-import { font, radius, space, useInsets, useTheme } from '../theme';
+import { font, radius, space, useInsets, useTheme, ls, ds } from '../theme';
 import { IconButton } from './ui';
 
 /** A full-height sheet with a title bar and a close button. */
@@ -47,7 +47,7 @@ export function Sheet({
             }}
           >
             <IconButton icon="close" label="Close" onPress={onClose} />
-            <Text style={{ color: t.text, fontSize: 26, fontFamily: font.display, letterSpacing: 1.2 }} numberOfLines={1}>
+            <Text style={{ color: t.text, fontSize: ds(26), fontFamily: font.display, letterSpacing: ls(1.2) }} numberOfLines={1}>
               {title}
             </Text>
             <View style={{ width: 40, alignItems: 'flex-end' }}>{right}</View>

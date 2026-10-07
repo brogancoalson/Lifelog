@@ -9,7 +9,8 @@ import { isValidDay } from '../lib/dates';
 import { grossPaycheck } from '../lib/money';
 import { fmtMoney } from '../lib/stats';
 import { useStore } from '../lib/store';
-import { font, radius, space, useTheme } from '../theme';
+import { APP_NAME, IS_FIT } from '../edition';
+import { font, radius, space, useTheme, ls, ds } from '../theme';
 
 export function SettingsScreen({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const t = useTheme();
@@ -115,7 +116,7 @@ export function SettingsScreen({ visible, onClose }: { visible: boolean; onClose
             }}
           >
             <IconButton icon="close" label="Close" onPress={onClose} />
-            <Text style={{ color: t.text, fontSize: 26, fontFamily: font.display, letterSpacing: 1.2 }}>Settings</Text>
+            <Text style={{ color: t.text, fontSize: ds(26), fontFamily: font.display, letterSpacing: ls(1.2) }}>Settings</Text>
             <View style={{ width: 40 }} />
           </View>
           <ScrollView contentContainerStyle={{ padding: space.lg, gap: space.lg, paddingBottom: 60 }} keyboardShouldPersistTaps="handled">
@@ -125,6 +126,7 @@ export function SettingsScreen({ visible, onClose }: { visible: boolean; onClose
               </Card>
             ) : null}
 
+            {IS_FIT ? null : (
             <Card style={{ gap: space.md }}>
               <Label>Congressional Award</Label>
               <Field label="Level you're working toward" value={level} onChangeText={setLevel} />
@@ -149,12 +151,14 @@ export function SettingsScreen({ visible, onClose }: { visible: boolean; onClose
               </View>
               <Button small title="Save award settings" onPress={saveAward} />
             </Card>
+            )}
 
             <Card style={{ gap: space.md }}>
-              <Label>Claude connection</Label>
+              <Label>{IS_FIT ? 'AI helper (optional)' : 'Claude connection'}</Label>
               <Body dim style={{ fontSize: 14 }}>
-                Powers the Ask tab (reports and advice from your data), smarter sorting in Log (any food, any phrasing), and the trading journal coach that reads your screenshots.
-                Get a key at platform.claude.com, add $5 to $20 of credit, and set a monthly spend limit there. The key stays on this device.
+                {IS_FIT
+                  ? 'The app works without this. Adding a Claude key turns on the Coach tab (advice from what you log) and smarter sorting in Log (any food, any phrasing). Get a key at platform.claude.com, add $5 of credit, and set a monthly spend limit there. The key stays on this device.'
+                  : 'Powers the Ask tab (reports and advice from your data), smarter sorting in Log (any food, any phrasing), and the trading journal coach that reads your screenshots. Get a key at platform.claude.com, add $5 to $20 of credit, and set a monthly spend limit there. The key stays on this device.'}
               </Body>
               <Field
                 label="Claude API key"
@@ -195,10 +199,14 @@ export function SettingsScreen({ visible, onClose }: { visible: boolean; onClose
                 />
               </View>
               <Field
-                label="About you (for Ask)"
+                label={IS_FIT ? 'About you (for Coach)' : 'About you (for Ask)'}
                 value={aboutMe}
                 onChangeText={setAboutMe}
-                placeholder="e.g. 180 lb, want 180g protein a day, lifting push/pull/legs 4 days a week, sleep goal 8 hours"
+                placeholder={
+                  IS_FIT
+                    ? 'e.g. 135 lb, want 110g protein a day, working out 4 days a week, goal is to tone up'
+                    : 'e.g. 180 lb, want 180g protein a day, lifting push/pull/legs 4 days a week, sleep goal 8 hours'
+                }
                 multiline
                 maxLength={2000}
                 style={{ minHeight: 96, textAlignVertical: 'top' }}
@@ -209,11 +217,12 @@ export function SettingsScreen({ visible, onClose }: { visible: boolean; onClose
                 title="Save about you"
                 onPress={() => {
                   updateSettings({ aboutMe: aboutMe.trim() || undefined });
-                  flash('Saved. Ask will use this for advice.');
+                  flash(IS_FIT ? 'Saved. Coach will use this for advice.' : 'Saved. Ask will use this for advice.');
                 }}
               />
             </Card>
 
+            {IS_FIT ? null : (
             <Card style={{ gap: space.md }}>
               <Label>Pay and buckets</Label>
               <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -253,6 +262,7 @@ export function SettingsScreen({ visible, onClose }: { visible: boolean; onClose
                 }}
               />
             </Card>
+            )}
 
             <Card style={{ gap: space.md }}>
               <Label>Food database</Label>
@@ -261,6 +271,7 @@ export function SettingsScreen({ visible, onClose }: { visible: boolean; onClose
               </Body>
             </Card>
 
+            {IS_FIT ? null : (
             <Card style={{ gap: space.md }}>
               <Label>Advanced: server sorting</Label>
               <Body dim style={{ fontSize: 14 }}>
@@ -278,6 +289,7 @@ export function SettingsScreen({ visible, onClose }: { visible: boolean; onClose
                 }}
               />
             </Card>
+            )}
 
             <Card style={{ gap: space.md }}>
               <Label>Backup</Label>
@@ -314,10 +326,10 @@ export function SettingsScreen({ visible, onClose }: { visible: boolean; onClose
                 onPress={() => {
                   try {
                     const ok = replaceAll(JSON.parse(restoreText));
-                    flash(ok ? 'Backup restored' : "That doesn't look like a Lifelog backup.");
+                    flash(ok ? 'Backup restored' : `That doesn't look like a ${APP_NAME} backup.`);
                     if (ok) setRestoreText('');
                   } catch {
-                    flash("That doesn't look like a Lifelog backup.");
+                    flash(`That doesn't look like a ${APP_NAME} backup.`);
                   }
                 }}
                 style={{ opacity: restoreText.trim() ? 1 : 0.4, alignSelf: 'flex-start', paddingVertical: 4 }}
