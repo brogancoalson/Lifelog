@@ -46,17 +46,17 @@ const light: typeof dark = {
 
 export type Theme = typeof dark;
 
-// Fit edition: sunny yellow on warm butter cream, white cards. Yellow is too light
+// Fit edition: sunny yellow on warm butter cream, butter-yellow cards (no stark white). Yellow is too light
 // to read as text, so links and active labels use the deeper accentInk.
 const fitLight: Theme = {
   bg: '#FFFBEB',
-  surface: '#FFFFFF',
-  surface2: '#FFF3C4',
-  border: '#F6E5A6',
-  borderStrong: '#EBCB5E',
+  surface: '#FFF5CF',
+  surface2: '#FFECA3',
+  border: '#F2DC8C',
+  borderStrong: '#E5C04E',
   text: '#3A2F12',
-  textDim: '#7A683A',
-  textFaint: '#AD9B66',
+  textDim: '#76643A',
+  textFaint: '#9C8850',
   accent: '#FFC928',
   accentText: '#3A2A00',
   accentInk: '#9A6200',
@@ -64,7 +64,7 @@ const fitLight: Theme = {
   danger: '#DC4B65',
   bubbleMe: '#FFC928',
   bubbleMeText: '#3A2A00',
-  bubbleApp: '#FFF3C4',
+  bubbleApp: '#FFF5CF',
   overlay: 'rgba(60,45,0,0.3)',
 };
 
