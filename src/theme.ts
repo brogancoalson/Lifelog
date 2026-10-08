@@ -68,25 +68,6 @@ const fitLight: Theme = {
   overlay: 'rgba(60,45,0,0.3)',
 };
 
-const fitDark: Theme = {
-  bg: '#1E1A10',
-  surface: '#2A2415',
-  surface2: '#363020',
-  border: '#4A4129',
-  borderStrong: '#62573A',
-  text: '#FFF8E1',
-  textDim: '#D6C79A',
-  textFaint: '#9A8C64',
-  accent: '#FFD23F',
-  accentText: '#2E2300',
-  accentInk: '#FFD23F',
-  good: '#6BD0A3',
-  danger: '#FF7A8C',
-  bubbleMe: '#FFD23F',
-  bubbleMeText: '#2E2300',
-  bubbleApp: '#363020',
-  overlay: 'rgba(0,0,0,0.55)',
-};
 
 export const font = IS_FIT
   ? { display: 'Nunito_800ExtraBold', label: 'Nunito_700Bold', labelBold: 'Nunito_800ExtraBold' }
@@ -124,7 +105,8 @@ export function useTheme(): Theme {
   const system = useColorScheme();
   const forced = useSyncExternalStore(subscribe, readForced, () => null);
   const scheme = forced ?? system;
-  if (IS_FIT) return scheme === 'dark' ? fitDark : fitLight;
+  // Glow Log is always the bright butter-yellow look, even when the phone is in dark mode.
+  if (IS_FIT) return fitLight;
   return scheme === 'light' ? light : dark;
 }
 

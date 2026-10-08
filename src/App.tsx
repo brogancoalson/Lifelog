@@ -149,7 +149,7 @@ function Shell() {
         </View>
       ) : null}
       <SettingsScreen visible={settingsOpen} onClose={() => setSettingsOpen(false)} />
-      <StatusBar style="auto" />
+      <StatusBar style={IS_FIT ? 'dark' : 'auto'} />
     </View>
   );
 }

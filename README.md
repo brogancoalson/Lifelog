@@ -19,7 +19,7 @@ Data is saved on the device. Screenshots are stored separately (app files on the
 
 ## Glow Log (the version for friends)
 
-Same app, built as a simple yellow food + workout tracker: Today (calories, protein, water, workouts), Log (chat or + by hand), and Coach (AI, optional). No money, trading, award hours, sleep, or mood. Round corners, Nunito font, sunny yellow theme (warm dark brown in dark mode).
+Same app, built as a simple yellow food + workout tracker: Today (calories, protein, water, workouts), Log (chat or + by hand), and Coach (AI, optional). No money, trading, award hours, sleep, or mood. Round corners, Nunito font, sunny butter-yellow theme (stays light even when the phone is in dark mode).
 
 - Turned on at build time with `EXPO_PUBLIC_EDITION=fit`. The switch lives in `src/edition.ts`; Lifelog builds look exactly the same as before.
 - Theme helpers in `src/theme.ts`: `radius`, `font`, `upper` (caps), `ls` (letter spacing), `ds` (big number sizes) all change with the edition. Use them instead of hard-coded values so both versions stay right.
