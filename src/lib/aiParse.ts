@@ -63,13 +63,24 @@ function awardSafetyNet(message: string, entries: Entry[]): Entry[] {
   return entries;
 }
 
-export async function sortMessage(message: string, settings: Settings): Promise<SortResult> {
-  const res = await sortAll(message, settings);
-  return { ...res, entries: fitOnly(res.entries) };
+/**
+ * `logDay` is the day picked in the Log tab (for logging past days). Anything the message
+ * doesn't put on another day goes there.
+ */
+export async function sortMessage(message: string, settings: Settings, logDay?: string): Promise<SortResult> {
+  const now = new Date();
+  const day = logDay && logDay !== toDay(now) ? logDay : undefined;
+  const res = await sortAll(message, settings, now, day);
+  let entries = fitOnly(res.entries);
+  if (day) {
+    // a safety net in case the AI still put things on today
+    const today = toDay(now);
+    entries = entries.map((e) => (e.date === today ? { ...e, date: day, time: undefined } : e));
+  }
+  return { ...res, entries };
 }
 
-async function sortAll(message: string, settings: Settings): Promise<SortResult> {
-  const now = new Date();
+async function sortAll(message: string, settings: Settings, now: Date, logDay?: string): Promise<SortResult> {
   const today = toDay(now);
   const time = toTime(now);
   const fallback: Partial<Entry> = { date: today, time, source: 'chat' };
@@ -93,7 +104,7 @@ async function sortAll(message: string, settings: Settings): Promise<SortResult>
       const res = await callClaude({
         key: settings.claudeKey!,
         model: MODEL_FAST,
-        system: (buildParsePrompt(today, WEEKDAYS[now.getDay()], time) + (IS_FIT ? FIT_PROMPT : '')),
+        system: (buildParsePrompt(today, WEEKDAYS[now.getDay()], time, logDay) + (IS_FIT ? FIT_PROMPT : '')),
         messages: [{ role: 'user', content: message }],
         tools: [{ name: 'save_entries', description: 'Save the structured life-log entries found in the message.', input_schema: ENTRY_JSON_SCHEMA as any }],
         toolChoice: { type: 'tool', name: 'save_entries' },
@@ -110,7 +121,7 @@ async function sortAll(message: string, settings: Settings): Promise<SortResult>
           Authorization: `Bearer ${settings.aiKey}`,
           apikey: settings.aiKey!,
         },
-        body: JSON.stringify({ message, today, weekday: WEEKDAYS[now.getDay()], time }),
+        body: JSON.stringify({ message, today, weekday: WEEKDAYS[now.getDay()], time, logDay }),
       });
       if (!res.ok) throw new Error(`Server said ${res.status}`);
       const json = await res.json();
@@ -119,13 +130,13 @@ async function sortAll(message: string, settings: Settings): Promise<SortResult>
     if (mode === 'ai-preview') {
       const s = await sampler();
       const prompt =
-        (buildParsePrompt(today, WEEKDAYS[now.getDay()], time) + (IS_FIT ? FIT_PROMPT : '')) +
+        (buildParsePrompt(today, WEEKDAYS[now.getDay()], time, logDay) + (IS_FIT ? FIT_PROMPT : '')) +
         `\n\nRespond with JSON only, matching this schema:\n${JSON.stringify(ENTRY_JSON_SCHEMA)}\n\nMessage:\n"""${message}"""`;
       const json = await s.json(prompt, { modelTier: 'quick' });
       return { entries: finish(Array.isArray(json?.entries) ? json.entries : []), mode };
     }
   } catch (err: any) {
-    return { entries: quickParse(message, now), mode: 'quick', fellBack: err?.message ?? 'AI sorting failed' };
+    return { entries: quickParse(message, now, logDay), mode: 'quick', fellBack: err?.message ?? 'AI sorting failed' };
   }
-  return { entries: quickParse(message, now), mode: 'quick' };
+  return { entries: quickParse(message, now, logDay), mode: 'quick' };
 }

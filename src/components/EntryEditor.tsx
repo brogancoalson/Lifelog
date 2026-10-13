@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { AWARD_AREAS, AWARD_ORDER, CATEGORIES, CATEGORY_ORDER, MOOD_LABELS } from '../lib/categories';
 import { addDays, prettyDay, toDay, toTime } from '../lib/dates';
+import { DayStrip } from './DayStrip';
 import { matchBucket } from '../lib/money';
 import { estimateNutrition } from '../lib/nutrition';
 import { minutesIn } from '../lib/quickParse';
@@ -358,6 +359,7 @@ export function EntryEditor({
                 <Body style={{ fontWeight: '700', minWidth: 130, textAlign: 'center' }}>{prettyDay(f.date)}</Body>
                 <IconButton icon="chevron-forward" label="Next day" onPress={() => set('date', addDays(f.date, 1))} />
               </View>
+              <DayStrip value={f.date} onChange={(d) => set('date', d)} />
             </View>
 
             {cat === 'drink' ? (

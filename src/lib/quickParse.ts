@@ -1,6 +1,6 @@
 import type { AwardArea, Category, Entry } from '../types';
 import { explicitAward, isTagOnly, mentionsAward, stripAwardTag, taggable, tagCoversAll } from './awardTag';
-import { addDays, toDay, toTime, uid } from './dates';
+import { addDays, findSaidDay, stripSaidDay, toDay, toTime, uid } from './dates';
 import { isCuratedFood, withEstimate } from './nutrition';
 import { bulletLines, isExercise, isSessionLength, liftsFromLines, parseLifts, sessionFromLines } from './workout';
 
@@ -236,13 +236,16 @@ function isDurationOnly(s: string): boolean {
   return !rest.replace(/[\s,.]+/g, '');
 }
 
-export function quickParse(message: string, now: Date = new Date()): Entry[] {
+/**
+ * `logDay` is the day picked in the Log tab: things go there unless the message names another day.
+ */
+export function quickParse(message: string, now: Date = new Date(), logDay?: string): Entry[] {
   const today = toDay(now);
   const yesterday = addDays(today, -1);
-  // when one thing gets split in two, both halves keep "last night" / "yesterday"
+  // when one thing gets split in two, both halves keep "last night" / "yesterday" / "Saturday"
   const keepWhen = (parts: string[], whole: string) => {
-    const when = whole.match(/\b(yesterday|last night)\b/i)?.[1];
-    return when ? parts.map((p) => (new RegExp(`\\b${when}\\b`, 'i').test(p) ? p : `${p} ${when}`)) : parts;
+    const when = whole.match(/\b(yesterday|last night)\b/i)?.[1] ?? findSaidDay(whole, today)?.words.trim();
+    return when ? parts.map((p) => (p.toLowerCase().includes(when.toLowerCase()) ? p : `${p} ${when}`)) : parts;
   };
   const chunks = message
     // commas split things, but not the one in "$1,250"
@@ -295,12 +298,20 @@ export function quickParse(message: string, now: Date = new Date()): Entry[] {
   const sessions = new Map<Entry, { chunks: string[]; when?: string }>();
   const timeOfDay = (s: string) => s.match(/\b(this morning|in the morning|this afternoon|this evening|tonight|at \d{1,2}(?::\d{2})?\s*(?:am|pm)?)\b/i)?.[1]?.toLowerCase();
   let pendingTag: AwardArea | undefined;
-  // "yesterday" carries on to the next things said; "last night" is just that one thing
-  let saidYesterday = false;
-  for (const raw of chunks) {
-    if (/\b(today|this morning|this afternoon|this evening|tonight)\b/i.test(raw)) saidYesterday = false;
-    if (/\byesterday\b/i.test(raw)) saidYesterday = true;
+  // a day they name ("yesterday", "Saturday", "Oct 5") carries on to the next things said; "last night" is just that one thing
+  const home = logDay ?? today;
+  let saidDay: string | undefined;
+  for (const said of chunks) {
+    if (/\b(today|this morning|this afternoon|this evening|tonight)\b/i.test(said)) saidDay = undefined;
+    if (/\byesterday\b/i.test(said) && !/\bday before yesterday\b/i.test(said)) saidDay = yesterday;
+    const named = findSaidDay(said, today);
+    if (named) saidDay = named.day;
+    const raw = named ? stripSaidDay(said, today) : said;
+    // "Saturday:" on its own just sets the day for what comes next
+    if (!raw.replace(/[\s,.:;!-]+/g, '')) continue;
     const lastNight = /\blast night\b/i.test(raw);
+    // the day this thing happened on (sleep is handled below)
+    const thingDay = lastNight ? yesterday : saidDay ?? home;
     // "..., that goes towards personal development" tags the thing before it instead of becoming its own entry
     if (isTagOnly(raw)) {
       const area = explicitAward(raw);
@@ -320,7 +331,7 @@ export function quickParse(message: string, now: Date = new Date()): Entry[] {
     const session = last0 ? sessions.get(last0) : undefined;
     // "took about an hour", "1 hr at the gym": how long that session was
     // "went on a walk, 45 min": the time belongs to the walk, not a new entry
-    if (!session && last0 && !tag && isDurationOnly(chunk) && last0.minutes === undefined && (last0.category === 'activity' || last0.category === 'workout') && (saidYesterday || lastNight ? yesterday : today) === last0.date) {
+    if (!session && last0 && !tag && isDurationOnly(chunk) && last0.minutes === undefined && (last0.category === 'activity' || last0.category === 'workout') && thingDay === last0.date) {
       last0.minutes = minutesIn(chunk);
       // same award guess as when the time is said in one go
       if (!last0.awardArea) {
@@ -330,7 +341,7 @@ export function quickParse(message: string, now: Date = new Date()): Entry[] {
       }
       continue;
     }
-    if (session && last0 && !tag && isDurationOnly(chunk) && (saidYesterday || lastNight ? yesterday : today) === last0.date) {
+    if (session && last0 && !tag && isDurationOnly(chunk) && thingDay === last0.date) {
       last0.minutes = minutesIn(chunk);
       last0.awardArea = last0.awardArea ?? 'fitness';
       continue;
@@ -338,7 +349,7 @@ export function quickParse(message: string, now: Date = new Date()): Entry[] {
     if (session && last0 && !tag) {
       const when = timeOfDay(chunk);
       const sameTime = !when || when === session.when;
-      const sameDay = (saidYesterday || lastNight ? yesterday : today) === last0.date;
+      const sameDay = thingDay === last0.date;
       // "185 pounds", "3 sets of 8" after "Bench press." (but "1 hr at the gym" is the session's length, handled below)
       const justNumbers = /^\s*(?:for|at|x|with)?\s*\d/i.test(chunk) && !isExercise(chunk) && !minutesIn(chunk) && (category === 'note' || category === 'workout');
       if (sameTime && sameDay && (justNumbers || (category === 'workout' && isExercise(chunk)))) {
@@ -359,8 +370,7 @@ export function quickParse(message: string, now: Date = new Date()): Entry[] {
     if (tag && !taggable(category)) category = 'activity';
     if (tag && category === 'note') category = 'activity';
     // sleep goes on the morning they woke up: "slept 6 hours last night" is today's sleep
-    const isYesterday = category === 'sleep' ? saidYesterday && !lastNight : saidYesterday || lastNight;
-    const date = isYesterday ? yesterday : today;
+    const date = category === 'sleep' ? (saidDay && !lastNight ? saidDay : home) : thingDay;
     const e: Entry = {
       id: uid(),
       createdAt: now.toISOString(),

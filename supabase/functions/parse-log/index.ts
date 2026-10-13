@@ -23,7 +23,7 @@ Deno.serve(async (req) => {
   const apiKey = Deno.env.get('ANTHROPIC_API_KEY');
   if (!apiKey) return json({ error: 'ANTHROPIC_API_KEY is not set' }, 500);
 
-  let body: { message?: string; today?: string; weekday?: string; time?: string };
+  let body: { message?: string; today?: string; weekday?: string; time?: string; logDay?: string };
   try {
     body = await req.json();
   } catch {
@@ -35,6 +35,7 @@ Deno.serve(async (req) => {
   const today = /^\d{4}-\d{2}-\d{2}$/.test(body.today ?? '') ? body.today! : new Date().toISOString().slice(0, 10);
   const weekday = body.weekday ?? '';
   const time = /^\d{2}:\d{2}$/.test(body.time ?? '') ? body.time! : '12:00';
+  const logDay = /^\d{4}-\d{2}-\d{2}$/.test(body.logDay ?? '') ? body.logDay : undefined;
 
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -46,7 +47,7 @@ Deno.serve(async (req) => {
     body: JSON.stringify({
       model: MODEL,
       max_tokens: 2000,
-      system: buildParsePrompt(today, weekday, time),
+      system: buildParsePrompt(today, weekday, time, logDay),
       tools: [
         {
           name: 'save_entries',

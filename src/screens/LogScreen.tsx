@@ -1,12 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { DayStrip } from '../components/DayStrip';
 import { EntryEditor } from '../components/EntryEditor';
 import { entryDetails, WorkoutBullets } from '../components/EntryRow';
 import { Body, CategoryDot, Icon, IconButton, Title } from '../components/ui';
 import { detectSortMode, sortMessage, SortMode } from '../lib/aiParse';
 import { awardReply } from '../lib/awardTag';
 import { AWARD_AREAS, CATEGORIES } from '../lib/categories';
-import { prettyDay } from '../lib/dates';
+import { prettyDay, toDay } from '../lib/dates';
 import { useStore } from '../lib/store';
 import { IS_FIT } from '../edition';
 import { font, radius, space, useInsets, useTheme, upper, ls } from '../theme';
@@ -92,6 +93,11 @@ export function LogScreen() {
   const scroll = useRef<ScrollView>(null);
   const input = useRef<TextInput>(null);
   const [typing, setTyping] = useState(false);
+  // logging a past day: everything sent goes there unless the message names another day
+  const [logDay, setLogDay] = useState<string | undefined>();
+  const [pickingDay, setPickingDay] = useState(false);
+  const today = toDay();
+  const pastDay = logDay && logDay !== today ? logDay : undefined;
   // Swap the buttons back a moment after the keyboard closes, so the tap that closed it
   // can't land on the + button that takes its place (matters on the web).
   const blurTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -118,7 +124,7 @@ export function LogScreen() {
     setText('');
     setBusy(true);
     addChat({ role: 'me', text: message });
-    const result = await sortMessage(message, data.settings);
+    const result = await sortMessage(message, data.settings, pastDay);
     if (!result.fellBack) setMode(result.mode);
     let reply: string;
     if (result.entries.length) {
@@ -249,6 +255,40 @@ export function LogScreen() {
         ) : null}
       </ScrollView>
 
+      {pastDay || pickingDay ? (
+        <View style={{ gap: 8, paddingHorizontal: space.sm, paddingTop: space.sm, borderTopWidth: 1, borderTopColor: t.border, backgroundColor: t.bg }}>
+          {pastDay ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 6 }}>
+              <Icon name="calendar" size={16} color={t.accentInk} />
+              <Text style={{ flex: 1, color: t.text, fontSize: 14, fontFamily: font.labelBold, letterSpacing: ls(1), textTransform: upper }}>
+                Logging to {prettyDay(pastDay, today)}
+              </Text>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => {
+                  setLogDay(undefined);
+                  setPickingDay(false);
+                }}
+                hitSlop={8}
+              >
+                <Text style={{ color: t.accentInk, fontSize: 14, fontFamily: font.labelBold, letterSpacing: ls(1), textTransform: upper }}>Back to today</Text>
+              </Pressable>
+            </View>
+          ) : (
+            <Text style={{ color: t.textDim, fontSize: 13, paddingHorizontal: 6 }}>Pick the day to log to. You can also just say it, like “Saturday did legs”.</Text>
+          )}
+          {pickingDay ? (
+            <DayStrip
+              value={pastDay ?? today}
+              onChange={(d) => {
+                setLogDay(d === today ? undefined : d);
+                setPickingDay(false);
+              }}
+            />
+          ) : null}
+        </View>
+      ) : null}
+
       <View
         style={{
           flexDirection: 'row',
@@ -271,6 +311,13 @@ export function LogScreen() {
         ) : (
           <IconButton icon="add" label="Add by hand" onPress={() => setAdding(true)} />
         )}
+        <IconButton
+          icon={pastDay ? 'calendar' : 'calendar-outline'}
+          label="Pick the day to log to"
+          color={pastDay || pickingDay ? t.accentInk : undefined}
+          onPress={() => setPickingDay((v) => !v)}
+          style={{ width: 36 }}
+        />
         <TextInput
           ref={input}
           onFocus={() => {
@@ -327,7 +374,7 @@ export function LogScreen() {
       </View>
 
       <EntryEditor visible={!!editing} entry={editing} onClose={() => setEditing(undefined)} />
-      <EntryEditor visible={adding} onClose={() => setAdding(false)} />
+      <EntryEditor visible={adding} defaults={pastDay ? { date: pastDay } : undefined} onClose={() => setAdding(false)} />
     </KeyboardAvoidingView>
   );
 }

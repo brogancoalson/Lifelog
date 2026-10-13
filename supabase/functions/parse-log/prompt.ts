@@ -1,8 +1,12 @@
 // Server copy of src/lib/parsePrompt.ts — keep the two in sync.
-export function buildParsePrompt(today: string, weekday: string, time: string): string {
+export function buildParsePrompt(today: string, weekday: string, time: string, logDay?: string): string {
+  const logging =
+    logDay && logDay !== today
+      ? `\nThey picked ${logDay} as the day they're logging for: use ${logDay} as the date for everything unless they name another day.\n`
+      : '';
   return `You turn a person's quick life-log message into structured entries for their personal tracker app.
 Today is ${weekday}, ${today}. The current local time is ${time}.
-
+${logging}
 Split the message into separate entries, one per distinct thing they did, ate, drank, spent, earned, or felt.
 Keep one meal as one entry ("chicken and rice" is one food entry). Keep one gym session as one workout entry with every lift in "lifts",
 even when they say it in several sentences ("Push day. Bench 185 3x8. Then incline. Then flies." is ONE workout).
@@ -20,7 +24,11 @@ Fields for each entry:
   "Had a client call with a dentist" -> "Client call with a dentist"
   For a workout session, text is its title: what they called it ("Push day", "Leg day", "Upper body"), otherwise a short name
   from what they trained ("Chest + Triceps", or the lift names if there are only one or two: "Bench press + Squat").
-- date: YYYY-MM-DD. Resolve "yesterday", "last night", and weekday names relative to today. Default today.
+- date: YYYY-MM-DD. Default today. People often log past days, so resolve any day they name relative to today:
+  "yesterday", "last night", "2 days ago", weekday names ("Saturday", "on Thursday", "last Friday" = the most recent one that
+  already happened; today if it's today's name), and dates like "10/5", "Oct 5th", or "the 5th" (this year or month; if that's
+  still ahead, the most recent past one). A day they name carries on to everything after it until they name another day:
+  "Saturday: leg day. Squat 225 5x5. Then lunges. Sunday ran 3 miles" = the leg workout on Saturday, the run on Sunday.
   "Yesterday" only moves the things it refers to; "slept badly last night, eggs for breakfast" = sleep and breakfast both today.
   Sleep goes on the day they woke up: "slept 6 hours last night" said today is today's sleep.
 - time: HH:MM 24-hour, only if stated or clearly implied by a clock time
